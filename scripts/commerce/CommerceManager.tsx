@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Boxes, Check, ChevronRight, ExternalLink, Image as ImageIcon, Layers3, PackagePlus,
+  Boxes, Check, ChevronRight, CreditCard, ExternalLink, Image as ImageIcon, Layers3, LockKeyhole, PackagePlus,
   Plus, Save, ShieldCheck, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,17 @@ export function CommerceManager() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [tab, setTab] = useState<"products" | "categories">("products");
+  const [paymentReady, setPaymentReady] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/commerce/pix", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("Gateway indisponível")))
+      .then((result: { enabled?: boolean; orderCreationReady?: boolean }) => {
+        if (alive) setPaymentReady(result.enabled === true && result.orderCreationReady === true);
+      })
+      .catch(() => { if (alive) setPaymentReady(false); });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     if (data && !hydrated.current) {
@@ -402,6 +413,42 @@ export function CommerceManager() {
         </section>
       )}
 
+      <section className={panel + " space-y-4"}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-violet-400">Infraestrutura financeira</p>
+            <h3 className="font-display text-lg font-black">Pagamentos e checkout</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Status das integrações do futuro comércio oficial.</p>
+          </div>
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-400">
+            Ativação controlada
+          </span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border border-border bg-background/60 p-4">
+            <CreditCard className="mb-2 size-5 text-violet-400" aria-hidden="true" />
+            <p className="font-bold">Pix · Mercado Pago</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {paymentReady === null ? "Verificando o backend..." :
+                paymentReady ? "Integração técnica habilitada — sujeita à revisão de pedidos." :
+                "Integração preparada. Aguardando banco e credenciais oficiais."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-background/60 p-4">
+            <LockKeyhole className="mb-2 size-5 text-violet-400" aria-hidden="true" />
+            <p className="font-bold">Cartões e pedidos</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Checkout real, reserva de estoque e cartões ainda exigem validação completa.
+              Nenhuma cobrança é feita neste painel.
+            </p>
+          </div>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          As credenciais são configuradas somente nas variáveis privadas da Vercel,
+          nunca em campos públicos do site. O valor da compra será calculado pelo servidor,
+          com produtos e estoque conferidos antes de qualquer pagamento real.
+        </p>
+      </section>
       <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-500/30 bg-card/95 p-3 shadow-xl backdrop-blur">
         <div className="text-xs text-muted-foreground">
           {dirty ? "Alterações não salvas" : "Catálogo sincronizado"}
