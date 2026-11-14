@@ -1,11 +1,216 @@
 diff --git a/src/routes/index.tsx b/src/routes/index.tsx
-index bc5ecda..14ca9ba 100644
+index bc5ecda..ea8986e 100644
 --- a/src/routes/index.tsx
 +++ b/src/routes/index.tsx
-@@ -127,11 +127,29 @@ function Home() {
+@@ -1,6 +1,6 @@
+ import { ChristmasCrystals } from "@/components/christmas-theme";
+ import { createFileRoute, Link } from "@tanstack/react-router";
+-import { useEffect, useState } from "react";
++import { useState } from "react";
+ import {
+   ShieldCheck,
+   Truck,
+@@ -9,8 +9,7 @@ import {
+   Zap,
+   ArrowRight,
+   ArrowUpRight,
+-  Pause,
+-  Play,
++  ArrowLeft,
+ } from "lucide-react";
+ import { useQuery } from "@tanstack/react-query";
+ import heroBannerImg from "@/assets/dinner-lady-luma-40k-prata.jpg";
+@@ -60,49 +59,153 @@ function Home() {
+   useReveal(catalog.length);
+   const { openPod } = useShop();
+   const { s: settings, WA } = useSettings();
+-  const [spot, setSpot] = useState(0);
+-  const [paused, setPaused] = useState(false);
+-  useEffect(() => {
+-    if (paused) return;
+-    const t = setInterval(() => setSpot((s) => s + 1), 6500);
+-    return () => clearInterval(t);
+-  }, [paused]);
++  const [active, setActive] = useState(0);
+   const spots = (
+     settings.featuredIds.length
+       ? settings.featuredIds.map((id) => catalog.find((p) => p.id === id))
+       : SPOT_NAMES.map((n) => catalog.find((p) => p.name === n))
+   ).filter((p): p is Product => !!p && !!p.image);
+-  const cur = spots[spot % Math.max(1, spots.length)];
++
+   const launches = catalog
+     .map((p, i) => ({ p, i }))
+     .filter(({ p }) => p.launch && !p.soldout)
+     .slice(0, 4);
+-  const openHero = () => {
+-    const i = settings.heroProductId
+-      ? catalog.findIndex((p) => p.id === settings.heroProductId)
+-      : catalog.findIndex((p) => /luma 40k/i.test(p.name));
+-    const p = catalog[i];
+-    if (p) openPod(p, i);
+-  };
++  const heroIndex = settings.heroProductId
++    ? catalog.findIndex((p) => p.id === settings.heroProductId)
++    : catalog.findIndex((p) => /luma 40k/i.test(p.name));
++  const heroProduct = catalog[heroIndex];
++  const candidates = settings.featuredIds.length
++    ? spots
++    : [...spots, ...launches.map(({ p }) => p)];
++  const featured = [
++    ...new Map(
++      candidates.filter((p) => p.image && p.id !== heroProduct?.id).map((p) => [p.id, p]),
++    ).values(),
++  ].slice(0, 4);
++  const current = featured[active - 1];
++  const slideCount = featured.length + 1;
++  const tone = ["amber", "violet", "mint", "blue", "coral"][active % 5];
++  const navigateSlide = (direction: number) =>
++    setActive((Math.min(active, slideCount - 1) + direction + slideCount) % slideCount);
++
+   return (
+     <>
+-      <section className="black-ice-hero relative overflow-hidden">
+-        <h1 className="sr-only">Crazy Pods — escolha seu pod</h1>
+-        <Button
+-          variant="ghost"
+-          onClick={openHero}
+-          aria-label="Ver lançamento em destaque"
+-          className="block h-auto w-full rounded-none p-0 hover:bg-transparent"
+-        >
+-          <img
+-            src={settings.heroImage ?? heroBannerImg}
+-            alt="Lançamento em destaque na Crazy Pods"
+-            width={1672}
+-            height={941}
+-            fetchPriority="high"
+-            className="mx-auto block h-auto max-h-[680px] w-full object-contain"
+-          />
+-        </Button>
++      <section
++        className="black-ice-hero crazy-stage"
++        data-tone={tone}
++        aria-label="Vitrine de destaques"
++      >
++        <h1 className="sr-only">Crazy Pods</h1>
++        <div className="crazy-stage-frame">
++          <div className="crazy-stage-slide" aria-live="polite">
++            {current ? (
++              <div key={current.id} className="crazy-product-feature">
++                <div className="crazy-feature-copy">
++                  <p className="crazy-feature-brand">{current.brand}</p>
++                  <h2 className="font-display">{current.name}</h2>
++                  <p className="crazy-feature-spec">
++                    {[
++                      current.puffs ? `${current.puffs.toLocaleString("pt-BR")} puffs` : "",
++                      current.flavors.length
++                        ? `${current.flavors.length} ${current.flavors.length === 1 ? "sabor" : "sabores"}`
++                        : "",
++                    ]
++                      .filter(Boolean)
++                      .join(" · ")}
++                  </p>
++                  <p className="crazy-feature-price">{brl(current.price)}</p>
++                  <Button
++                    className="crazy-stage-button"
++                    onClick={() => openPod(current, catalog.indexOf(current))}
++                  >
++                    {current.soldout
++                      ? "Consultar modelo"
++                      : current.flavors.length
++                        ? "Ver sabores"
++                        : "Ver detalhes"}
++                    <ArrowUpRight aria-hidden="true" />
++                  </Button>
++                </div>
++                <div className="crazy-feature-scene">
++                  <div className="crazy-feature-orbit" aria-hidden="true" />
++                  <div className="crazy-feature-shadow" aria-hidden="true" />
++                  <div className="crazy-feature-float">
++                    <PodImage
++                      key={current.id}
++                      p={current}
++                      i={active}
++                      className="h-full w-full object-contain"
++                    />
++                  </div>
++                </div>
++              </div>
++            ) : (
++              <div className="crazy-campaign-slide">
++                <div className="crazy-campaign-glow" aria-hidden="true" />
++                <img
++                  src={settings.heroImage ?? heroBannerImg}
++                  alt={heroProduct ? `Campanha ${heroProduct.name}` : "Campanha Crazy Pods"}
++                  width={1672}
++                  height={941}
++                  fetchPriority="high"
++                  className="crazy-campaign-art"
++                />
++                <div className="crazy-campaign-actions">
++                  {heroProduct && (
++                    <Button
++                      className="crazy-stage-button"
++                      onClick={() => openPod(heroProduct, heroIndex)}
++                    >
++                      Ver destaque <ArrowUpRight aria-hidden="true" />
++                    </Button>
++                  )}
++                  <Button asChild variant="commerce" className="crazy-stage-catalog">
++                    <Link to="/pods">
++                      Ver catálogo <ArrowRight aria-hidden="true" />
++                    </Link>
++                  </Button>
++                </div>
++              </div>
++            )}
++          </div>
++          {slideCount > 1 && (
++            <div className="crazy-stage-controls">
++              <div className="crazy-stage-tabs" role="group" aria-label="Escolher destaque">
++                <button type="button" aria-pressed={!current} onClick={() => setActive(0)}>
++                  {heroProduct?.name ?? "Campanha"}
++                </button>
++                {featured.map((p, i) => (
++                  <button
++                    key={p.id}
++                    type="button"
++                    aria-pressed={p.id === current?.id}
++                    onClick={() => setActive(i + 1)}
++                  >
++                    {p.name}
++                  </button>
++                ))}
++              </div>
++              <div className="crazy-stage-arrows">
++                <Button
++                  size="icon"
++                  variant="commerce"
++                  aria-label="Destaque anterior"
++                  onClick={() => navigateSlide(-1)}
++                >
++                  <ArrowLeft aria-hidden="true" />
++                </Button>
++                <Button
++                  size="icon"
++                  variant="commerce"
++                  aria-label="Próximo destaque"
++                  onClick={() => navigateSlide(1)}
++                >
++                  <ArrowRight aria-hidden="true" />
++                </Button>
++              </div>
++            </div>
++          )}
++        </div>
+         <ChristmasCrystals />
+       </section>
+       <section className="chrome-band">
+@@ -127,11 +230,29 @@ function Home() {
          </div>
        </section>
  
+-      <section className="store-section chrome-band">
 +      {launches.length > 0 && (
 +        <section className="volt-launches store-section">
 +          <div className="mx-auto max-w-7xl px-5">
@@ -25,7 +230,7 @@ index bc5ecda..14ca9ba 100644
 +        </section>
 +      )}
 +
-       <section className="store-section chrome-band">
++      <section className="store-section crazy-brand-section">
          <div className="mx-auto max-w-7xl px-5">
            <div className="flex flex-wrap items-end justify-between gap-4">
              <div>
@@ -33,32 +238,77 @@ index bc5ecda..14ca9ba 100644
                <h2 className="store-heading font-display font-bold">Escolha por marca</h2>
              </div>
              <Button variant="secondary" asChild>
-@@ -140,7 +158,7 @@ function Home() {
+@@ -140,56 +261,60 @@ function Home() {
                </Link>
              </Button>
            </div>
 -          <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
++          <div className="crazy-brand-grid">
              {brandCats.map((c) => (
-               <Button
+-              <Button
++              <Link
                  key={c.id}
-@@ -149,13 +167,13 @@ function Home() {
-                 className="group h-auto whitespace-normal rounded-lg border border-border bg-background p-4 text-foreground hover:bg-secondary hover:text-foreground"
+-                asChild
+-                variant="ghost"
+-                className="group h-auto whitespace-normal rounded-lg border border-border bg-background p-4 text-foreground hover:bg-secondary hover:text-foreground"
++                to="/categoria/$cat"
++                params={{ cat: c.id }}
++                className="crazy-brand-tile"
++                data-brand={c.id}
                >
-                 <Link to="/categoria/$cat" params={{ cat: c.id }} className="flex flex-col">
+-                <Link to="/categoria/$cat" params={{ cat: c.id }} className="flex flex-col">
 -                  <div className="flex h-24 w-full items-center justify-center">
-+                  <div className="flex h-16 w-full sm:h-24 items-center justify-center">
-                     {c.logo ? (
-                       <img
-                         src={c.logo}
-                         alt={c.label}
-                         loading="lazy"
+-                    {c.logo ? (
+-                      <img
+-                        src={c.logo}
+-                        alt={c.label}
+-                        loading="lazy"
 -                        className="brand-logo-light max-h-20 w-full max-w-32 object-contain transition duration-300 group-hover:scale-105"
-+                        className="brand-logo-light max-h-14 w-full max-w-28 sm:max-h-20 object-contain transition duration-300 group-hover:scale-105"
-                       />
-                     ) : (
-                       <span className="font-display text-xl font-bold">+ MARCAS</span>
-@@ -178,8 +196,7 @@ function Home() {
+-                      />
+-                    ) : (
+-                      <span className="font-display text-xl font-bold">+ MARCAS</span>
+-                    )}
+-                  </div>
+-                  <div className="mt-4 flex w-full items-center justify-between border-t border-border pt-3">
+-                    <span className="text-xs text-muted-foreground">
+-                      {catalog.filter((p) => match(p, c.id)).length} modelos
+-                    </span>
+-                    <ArrowUpRight className="h-4 w-4" />
+-                  </div>
+-                </Link>
+-              </Button>
++                <div className="crazy-brand-copy">
++                  {c.logo ? (
++                    <img
++                      src={c.logo}
++                      alt={c.label}
++                      className="crazy-brand-logo brand-logo-light"
++                      loading="lazy"
++                    />
++                  ) : (
++                    <span>{c.label}</span>
++                  )}
++                  <span className="crazy-brand-count">
++                    {catalog.filter((p) => match(p, c.id)).length} modelos
++                  </span>
++                </div>
++                <img
++                  src={c.img}
++                  alt=""
++                  width={700}
++                  height={700}
++                  loading="lazy"
++                  className="crazy-brand-product"
++                />
++                <ArrowUpRight className="crazy-brand-arrow" aria-hidden="true" />
++              </Link>
+             ))}
+           </div>
+         </div>
+       </section>
+ 
+-      <section className="store-section">
++      <section className="store-section crazy-category-section">
          <div className="mx-auto max-w-7xl px-5">
            <div className="flex flex-wrap items-end justify-between gap-4">
              <div>
@@ -68,10 +318,84 @@ index bc5ecda..14ca9ba 100644
              </div>
              <p className="text-sm text-muted-foreground">Novidades, puffs ou recarregáveis</p>
            </div>
-@@ -272,26 +289,6 @@ function Home() {
-         </section>
-       )}
+-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
++          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+             {extraCats.map((c) => (
+               <Button
+                 key={c.id}
+                 asChild
+                 variant="ghost"
+-                className="group h-auto items-start whitespace-normal rounded-lg border border-border p-5 text-left text-foreground transition hover:-translate-y-1 hover:bg-secondary hover:text-foreground"
++                className="group h-auto items-start whitespace-normal rounded-lg border border-border bg-card p-3 text-left sm:p-5 text-foreground transition hover:-translate-y-1 hover:bg-secondary hover:text-foreground"
+               >
+                 <Link to="/categoria/$cat" params={{ cat: c.id }} className="flex flex-col gap-3">
+                   <div className="flex w-full justify-between">
+@@ -210,88 +335,6 @@ function Home() {
+         </div>
+       </section>
  
+-      {cur && (
+-        <section
+-          className="border-y border-border bg-product-stage"
+-          onMouseEnter={() => setPaused(true)}
+-          onMouseLeave={() => setPaused(false)}
+-          onFocusCapture={() => setPaused(true)}
+-          onBlurCapture={() => setPaused(false)}
+-        >
+-          <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 py-12 md:grid-cols-2 md:py-16">
+-            <div>
+-              <p className="text-xs font-bold text-muted-foreground">NA VITRINE CRAZY</p>
+-              <h2 className="product-name mt-4 font-display text-3xl font-bold md:text-4xl">
+-                {cur.name}
+-              </h2>
+-              <p className="mt-4 text-muted-foreground">
+-                {cur.puffs.toLocaleString("pt-BR")} puffs · {cur.flavors.length} sabores
+-              </p>
+-              <p className="mt-6 font-display text-3xl font-bold">{brl(cur.price)}</p>
+-              <Button
+-                variant="commerce"
+-                className="mt-6 h-12 rounded-full"
+-                onClick={() => openPod(cur, catalog.indexOf(cur))}
+-              >
+-                Escolher sabor
+-                <ArrowRight />
+-              </Button>
+-              <div className="mt-7 flex items-center gap-2">
+-                <Button
+-                  variant="ghost"
+-                  size="icon"
+-                  aria-label={paused ? "Retomar destaques" : "Pausar destaques"}
+-                  onClick={() => setPaused((p) => !p)}
+-                >
+-                  {paused ? <Play /> : <Pause />}
+-                </Button>
+-                {spots.map((p, i) => (
+-                  <Button
+-                    key={p.id}
+-                    variant="ghost"
+-                    size="icon"
+-                    aria-label={`Mostrar ${p.name}`}
+-                    aria-pressed={i === spot % spots.length}
+-                    onClick={() => setSpot(i)}
+-                  >
+-                    <span
+-                      className={`h-2.5 w-2.5 rounded-full ${i === spot % spots.length ? "bg-primary" : "bg-muted-foreground/40"}`}
+-                    />
+-                  </Button>
+-                ))}
+-              </div>
+-            </div>
+-            <div className="flex h-64 items-center justify-center md:h-96">
+-              <PodImage
+-                p={cur}
+-                i={spot}
+-                className="h-full w-full max-w-sm animate-float object-contain"
+-              />
+-            </div>
+-          </div>
+-        </section>
+-      )}
+-
 -      {launches.length > 0 && (
 -        <section className="store-section">
 -          <div className="mx-auto max-w-7xl px-5">
@@ -427,10 +751,10 @@ index f1c1657..e18dad2 100644
        )}
      </form>
 diff --git a/src/styles.css b/src/styles.css
-index 7e28532..9814550 100644
+index 7e28532..3a96ad7 100644
 --- a/src/styles.css
 +++ b/src/styles.css
-@@ -462,3 +462,53 @@ button:focus-visible {
+@@ -462,3 +462,210 @@ button:focus-visible {
    .floating-cart-launcher:active { transform: none; }
  }
  
@@ -483,4 +807,161 @@ index 7e28532..9814550 100644
 +  .volt-product-card:hover {
 +    transform: none;
 +  }
++}
++
++/* Crazy Pods campaign and collection */
++.crazy-stage {
++  --stage-rgb: 226 156 60;
++  position: relative;
++  isolation: isolate;
++  overflow: hidden;
++  background: #100e16;
++}
++.crazy-stage[data-tone="violet"] { --stage-rgb: 173 134 255; }
++.crazy-stage[data-tone="mint"] { --stage-rgb: 97 220 194; }
++.crazy-stage[data-tone="blue"] { --stage-rgb: 105 168 255; }
++.crazy-stage[data-tone="coral"] { --stage-rgb: 253 143 145; }
++
++.crazy-stage-frame { max-width: 80rem; padding: 1rem 1.25rem; margin-inline: auto; }
++.crazy-stage-slide {
++  position: relative;
++  isolation: isolate;
++  overflow: hidden;
++  border: 1px solid rgb(var(--stage-rgb) / .28);
++  border-radius: 1.25rem;
++  background: #0d0b11;
++}
++.crazy-campaign-slide {
++  position: relative;
++  display: grid;
++  min-height: 18rem;
++  grid-template-rows: 1fr auto;
++}
++.crazy-campaign-glow {
++  position: absolute;
++  inset: 0;
++  z-index: -1;
++  opacity: .25;
++  background: radial-gradient(ellipse at 70% 48%, rgb(var(--stage-rgb) / .9), transparent 62%);
++}
++.crazy-campaign-art {
++  display: block;
++  width: 100%;
++  max-height: clamp(21rem, 47vw, 35rem);
++  object-fit: contain;
++}
++.crazy-campaign-actions {
++  display: flex;
++  flex-wrap: wrap;
++  gap: .6rem;
++  justify-content: center;
++  padding: .75rem 1rem 1rem;
++}
++.crazy-stage-button,
++.crazy-stage-catalog {
++  min-height: 2.75rem;
++  padding-inline: 1rem;
++  border-radius: .7rem;
++  font-weight: 800;
++}
++.crazy-stage-button {
++  background: rgb(var(--stage-rgb));
++  color: #141019;
++}
++.crazy-stage-button:hover { background: color-mix(in srgb, rgb(var(--stage-rgb)), white 20%); color: #141019; }
++
++.crazy-stage-controls { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .75rem; }
++.crazy-stage-tabs {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  min-width: 0;
++  gap: .4rem;
++}
++.crazy-stage-tabs button {
++  border: 1px solid var(--border);
++  border-radius: 999px;
++  background: var(--card);
++  color: var(--muted-foreground);
++  padding: .55rem .85rem;
++  cursor: pointer;
++  font-size: .75rem;
++  font-weight: 750;
++}
++.crazy-stage-tabs button[aria-pressed="true"] {
++  color: var(--foreground);
++  border-color: rgb(var(--stage-rgb) / .75);
++  background: rgb(var(--stage-rgb) / .12);
++}
++.crazy-stage-arrows { display: flex; gap: .35rem; flex: none; }
++.crazy-stage-tabs button:focus-visible,
++.crazy-brand-tile:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
++
++.crazy-product-feature {
++  position: relative;
++  display: grid;
++  align-items: center;
++  background:
++    radial-gradient(ellipse at 75% 46%, rgb(var(--stage-rgb) / .28) 0%, transparent 61%),
++    linear-gradient(140deg, #1c1527, #0b090f 75%);
++}
++.crazy-feature-copy { z-index: 1; padding: clamp(1.25rem, 5vw, 4.75rem); }
++.crazy-feature-brand { color: rgb(var(--stage-rgb)); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; }
++.crazy-feature-copy h2 { margin-top: .55rem; color: #f9f6ff; font-size: clamp(1.65rem, 5vw, 4rem); font-weight: 850; line-height: 1.04; letter-spacing: -.05em; text-wrap: balance; }
++.crazy-feature-spec { margin-top: .7rem; color: #ddd6e9; }
++.crazy-feature-price { margin-block: .9rem; color: #fff; font-size: clamp(1.35rem, 3vw, 2.1rem); font-weight: 850; font-variant-numeric: tabular-nums; }
++.crazy-feature-scene { position: relative; isolation: isolate; display: grid; min-width: 0; min-height: clamp(14rem, 39vw, 32rem); place-items: center; }
++.crazy-feature-orbit { position: absolute; width: 79%; aspect-ratio: 1.8; border-radius: 50%; border: 1px solid rgb(var(--stage-rgb) / .36); box-shadow: inset 0 0 24px rgb(var(--stage-rgb) / .12), 0 0 30px rgb(var(--stage-rgb) / .14); transform: rotate(-21deg); }
++.crazy-feature-shadow { position: absolute; bottom: 11%; width: 46%; height: 4%; border-radius: 50%; background: #0008; filter: blur(9px); }
++.crazy-feature-float { position: relative; width: 88%; height: clamp(13rem, 36vw, 29rem); animation: crazy-levitate 5.4s ease-in-out infinite; }
++@keyframes crazy-levitate {
++  0%, 100% { transform: translateY(0) rotate(-5deg); }
++  50% { transform: translateY(-12px) rotate(-1deg); }
++}
++
++.crazy-brand-section { border-block: 1px solid var(--border); background: linear-gradient(150deg, #17121e, var(--background) 76%); }
++.crazy-brand-grid { display: grid; margin-top: 1.25rem; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
++.crazy-brand-tile {
++  --tile-rgb: 172 139 255;
++  position: relative;
++  display: flex;
++  align-items: end;
++  min-height: 9rem;
++  overflow: hidden;
++  isolation: isolate;
++  border: 1px solid rgb(var(--tile-rgb) / .32);
++  border-radius: .9rem;
++  padding: .7rem;
++  background: radial-gradient(ellipse at 81% 26%, rgb(var(--tile-rgb) / .24), transparent 72%), var(--card);
++}
++.crazy-brand-tile[data-brand="ignite"] { --tile-rgb: 231 165 94; }
++.crazy-brand-tile[data-brand="elfbar"] { --tile-rgb: 153 143 255; }
++.crazy-brand-tile[data-brand="lostmary"] { --tile-rgb: 126 220 188; }
++.crazy-brand-tile[data-brand="oxbar"] { --tile-rgb: 251 144 174; }
++.crazy-brand-tile[data-brand="waka"] { --tile-rgb: 113 172 250; }
++.crazy-brand-tile:hover { border-color: rgb(var(--tile-rgb) / .8); }
++.crazy-brand-product { position: absolute; z-index: -1; width: 76%; height: 82%; top: 1%; right: -9%; object-fit: contain; transform: rotate(-9deg); transition: transform .35s ease; }
++.crazy-brand-tile:hover .crazy-brand-product { transform: translateY(-5px) rotate(-4deg); }
++.crazy-brand-copy { display: grid; justify-items: start; gap: .35rem; padding: .4rem .5rem; max-width: 85%; border-radius: .45rem; background: #100e16e8; font-weight: 800; line-height: 1.2; }
++.crazy-brand-logo { width: auto; max-width: 4.9rem; height: 1.2rem; object-fit: contain; }
++.crazy-brand-count { color: var(--muted-foreground); font-size: .7rem; font-weight: 650; }
++.crazy-brand-arrow { position: absolute; right: .65rem; top: .65rem; width: .9rem; height: .9rem; }
++.crazy-category-section { background: radial-gradient(ellipse at 70% 0%, #20162b, var(--background) 72%); }
++
++@media (min-width: 768px) {
++  .crazy-product-feature { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: clamp(25rem, 47vw, 38.5rem); }
++  .crazy-brand-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
++  .crazy-brand-tile { min-height: 12rem; padding: 1rem; }
++  .crazy-brand-logo { max-width: 7rem; height: 1.5rem; }
++}
++@media (max-width: 767px) {
++  .crazy-stage-frame { padding: .65rem .75rem; }
++  .crazy-stage-controls { align-items: start; }
++  .crazy-stage-tabs button { padding: .4rem .55rem; }
++  .crazy-campaign-slide { min-height: 0; }
++  .crazy-feature-copy { grid-row: 2; padding-top: .5rem; }
++}
++@media (prefers-reduced-motion: reduce) {
++  .crazy-feature-float { animation: none; }
++  .crazy-brand-product { transition: none; }
 +}
