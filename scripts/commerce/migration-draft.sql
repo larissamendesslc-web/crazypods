@@ -52,19 +52,18 @@ create table if not exists public.commerce_variants (
 );
 
 create table if not exists public.commerce_inventory (
+  id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.commerce_products(id) on delete restrict,
   variant_id uuid references public.commerce_variants(id) on delete restrict,
   store_id text not null check (store_id in ('quitauna','jardimBoaVista')),
   available integer not null default 0 check (available >= 0),
   reserved integer not null default 0 check (reserved >= 0),
   updated_at timestamptz not null default now(),
-  primary key (product_id, store_id, variant_id)
+  constraint commerce_stock_unique unique nulls not distinct (product_id, store_id, variant_id)
 );
--- PostgreSQL treats NULL in composite primary keys as not null.
--- Use explicit UUID sentinel for unvaried stock at a later migration,
--- or use a non-null synthetic 'base variant' row per product.
--- To prevent ambiguous stock keys, inventory is not enabled for checkout
--- until that companion migration and atomic reservation function are installed.
+-- NULL variant_id indicates base product stock, without requiring a fabricated variant.
+-- Before enabling fulfillment, additionally enforce variant/product ownership and
+-- atomic reserve/release/commit operations in dedicated server transactions.
 
 create table if not exists public.commerce_orders (
   id uuid primary key default gen_random_uuid(),
