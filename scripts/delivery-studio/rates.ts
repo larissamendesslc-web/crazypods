@@ -111,8 +111,8 @@ export function calculateDeliveryQuote(
 
 /** Exact city/neighborhood match from the postal lookup; no guessed location or rate. */
 export function normalizePlace(value: string): string {
-  return value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
-    .trim().replace(/\\s+/g, " ").toLowerCase();
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 export type ZoneDeliveryQuote = {
