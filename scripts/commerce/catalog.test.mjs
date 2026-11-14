@@ -25,6 +25,7 @@ function sample() {
 test("BRL prices use integer centavos", () => {
   assert.equal(parseBRLCents("89,90"), 8990);
   assert.equal(parseBRLCents("89.9"), 8990);
+  assert.equal(parseBRLCents("R$ 1.299,90"), 129990);
   assert.equal(parseBRLCents("0,01"), 1);
   assert.equal(parseBRLCents("-1"), null);
   assert.equal(parseBRLCents("1,999"), null);
