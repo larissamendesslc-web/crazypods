@@ -1,0 +1,51 @@
+/* CRAZY MOBILE POLISH: screenshot-based responsive corrections */
+@media (max-width: 639px) {
+  /* The original 64px logo should not be stretched to 80 CSS pixels. */
+  .mobile-store-logo { width: 3.75rem; height: 3.75rem; flex-shrink: 0; }
+  .mobile-product-grid { gap: 0.625rem; }
+  .mobile-product-stage {
+    height: clamp(9rem, 40vw, 11.25rem);
+    padding: 0.9rem 0.625rem 0.5rem;
+  }
+  .mobile-product-image {
+    height: clamp(7.25rem, 34vw, 9.75rem);
+    margin-top: 0.6rem;
+  }
+  .mobile-product-content { padding: 0.75rem; }
+  .mobile-product-name {
+    font-size: clamp(0.76rem, 3.2vw, 0.875rem);
+    line-height: 1.28;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  .mobile-product-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+  }
+  .mobile-product-price {
+    font-size: clamp(0.95rem, 4vw, 1.125rem);
+    line-height: 1.2;
+  }
+  .mobile-product-button {
+    width: 100%;
+    min-height: 2.5rem;
+    max-width: 100%;
+    justify-content: center;
+  }
+  /* Reduce footprint and honor iOS home indicator / safe areas. */
+  .mobile-whatsapp-button {
+    width: 2.875rem;
+    height: 2.875rem;
+    right: max(0.625rem, env(safe-area-inset-right, 0px));
+    bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px));
+    opacity: 0.93;
+  }
+  .mobile-whatsapp-button svg { width: 1.5rem; height: 1.5rem; }
+  .mobile-whatsapp-button:focus-visible,
+  .mobile-whatsapp-button:hover { opacity: 1; }
+}
+@media (max-width: 359px) {
+  .mobile-product-grid { grid-template-columns: 1fr; }
+}
