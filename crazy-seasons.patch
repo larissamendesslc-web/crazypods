@@ -73,10 +73,10 @@ index a560196..19f9edd 100644
    );
 diff --git a/src/components/christmas-theme.css b/src/components/christmas-theme.css
 new file mode 100644
-index 0000000..d2808c5
+index 0000000..cd49cd0
 --- /dev/null
 +++ b/src/components/christmas-theme.css
-@@ -0,0 +1,191 @@
+@@ -0,0 +1,192 @@
 +.black-ice-snow {
 +  position: absolute;
 +  inset: 0;
@@ -120,7 +120,8 @@ index 0000000..d2808c5
 +.black-ice-snow {
 +  container-type: size;
 +}
-+.black-ice-snow[data-paused="true"] i {
++.black-ice-snow[data-paused="true"] i,
++.black-ice-lights[data-paused="true"] i {
 +  animation-play-state: paused;
 +}
 +
@@ -270,42 +271,16 @@ index 0000000..d2808c5
 +}
 diff --git a/src/components/christmas-theme.tsx b/src/components/christmas-theme.tsx
 new file mode 100644
-index 0000000..6c0451c
+index 0000000..db54310
 --- /dev/null
 +++ b/src/components/christmas-theme.tsx
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,105 @@
 +import { useEffect, useId, useState, type CSSProperties } from "react";
 +import { Snowflake, Sparkles } from "lucide-react";
-+import { seasonIsActive, type SeasonSettings } from "@/lib/seasons";
++import type { SeasonSettings } from "@/lib/seasons";
 +import "./christmas-theme.css";
 +
-+const snowCount = { soft: 20, medium: 34, strong: 52 };
-+
-+export function useChristmasTheme(season: SeasonSettings, available: boolean) {
-+  const [now, setNow] = useState<number>();
-+  useEffect(() => {
-+    let timer: ReturnType<typeof setTimeout>;
-+    function syncClock() {
-+      clearTimeout(timer);
-+      const time = Date.now();
-+      setNow(time);
-+      const next = [season.start, season.end]
-+        .map((date) => (date ? Date.parse(date) : Infinity))
-+        .filter((date) => date > time);
-+      if (next.length)
-+        timer = setTimeout(syncClock, Math.min(2_147_483_647, Math.min(...next) - time));
-+    }
-+    syncClock();
-+    document.addEventListener("visibilitychange", syncClock);
-+    return () => {
-+      clearTimeout(timer);
-+      document.removeEventListener("visibilitychange", syncClock);
-+    };
-+  }, [season.start, season.end]);
-+  return available && now !== undefined && seasonIsActive(season, now);
-+}
-+
-+export function SnowfallEffect({ intensity }: { intensity: SeasonSettings["snow"] }) {
++function useTabVisibility() {
 +  const [visible, setVisible] = useState(true);
 +  useEffect(() => {
 +    const sync = () => setVisible(!document.hidden);
@@ -313,6 +288,13 @@ index 0000000..6c0451c
 +    document.addEventListener("visibilitychange", sync);
 +    return () => document.removeEventListener("visibilitychange", sync);
 +  }, []);
++  return visible;
++}
++
++const snowCount = { soft: 20, medium: 34, strong: 52 };
++
++export function SnowfallEffect({ intensity }: { intensity: SeasonSettings["snow"] }) {
++  const visible = useTabVisibility();
 +
 +  return (
 +    <div aria-hidden="true" className="black-ice-snow" data-paused={!visible}>
@@ -371,8 +353,9 @@ index 0000000..6c0451c
 +}
 +
 +export function ChristmasHeaderLights() {
++  const visible = useTabVisibility();
 +  return (
-+    <div className="black-ice-lights" aria-hidden="true">
++    <div className="black-ice-lights" data-paused={!visible} aria-hidden="true">
 +      {Array.from({ length: 32 }, (_, index) => (
 +        <i key={index} />
 +      ))}
@@ -397,21 +380,557 @@ index 0000000..6c0451c
 +    </p>
 +  );
 +}
+diff --git a/src/components/season-clock.ts b/src/components/season-clock.ts
+new file mode 100644
+index 0000000..259607d
+--- /dev/null
++++ b/src/components/season-clock.ts
+@@ -0,0 +1,48 @@
++import { useEffect, useState } from "react";
++import { useQuery } from "@tanstack/react-query";
++import { THEME_IDS, type ThemeEngine } from "@/lib/theme-engine";
++
++export function useSeasonClock(engine: ThemeEngine, available: boolean) {
++  const clock = useQuery({
++    queryKey: ["seasons-clock"],
++    enabled: available && typeof window !== "undefined",
++    staleTime: 60_000,
++    refetchInterval: 300_000,
++    queryFn: async ({ signal }) => {
++      const start = performance.now();
++      const response = await fetch("/api/seasons-clock", { cache: "no-store", signal });
++      if (!response.ok) throw new Error("Horário indisponível.");
++      const { now } = await response.json();
++      if (!Number.isFinite(now)) throw new Error("Horário inválido.");
++      const received = performance.now();
++      return { now: Number(now) + (received - start) / 2, received };
++    },
++  });
++  const [now, setNow] = useState<number>();
++  useEffect(() => {
++    if (!clock.data || !available) return;
++    const anchor = clock.data;
++    const boundaries = THEME_IDS.flatMap((id) => {
++      const profile = engine.profiles[id];
++      return profile.scheduled ? [profile.start, profile.end] : [];
++    }).map((value) => (value ? Date.parse(value) : Infinity));
++    let timer: ReturnType<typeof setTimeout>;
++    function sync() {
++      clearTimeout(timer);
++      const current = anchor.now + performance.now() - anchor.received;
++      setNow(current);
++      if (document.hidden) return;
++      const next = Math.min(...boundaries.filter((time) => time > current));
++      const delay = next - current;
++      if (Number.isFinite(delay))
++        timer = setTimeout(sync, Math.min(2_147_483_647, Math.ceil(delay)));
++    }
++    sync();
++    document.addEventListener("visibilitychange", sync);
++    return () => {
++      clearTimeout(timer);
++      document.removeEventListener("visibilitychange", sync);
++    };
++  }, [available, clock.data, engine]);
++  return available ? now : undefined;
++}
+diff --git a/src/components/season-effects.css b/src/components/season-effects.css
+new file mode 100644
+index 0000000..255d5ff
+--- /dev/null
++++ b/src/components/season-effects.css
+@@ -0,0 +1,295 @@
++[data-season="halloween"] {
++  --season-hue: #b07bec;
++  --season-metal: #d88b58;
++  --season-shadow: #44205a;
++}
++[data-season="newyear"] {
++  --season-hue: #e8c38d;
++  --season-metal: #e9e4ff;
++  --season-shadow: #514066;
++}
++[data-season="cyber"] {
++  --season-hue: #a276ff;
++  --season-metal: #e2d7ff;
++  --season-shadow: #482b96;
++}
++[data-season="christmas"] {
++  --season-hue: #cdc5f4;
++  --season-metal: #ecf0ff;
++  --season-shadow: #45416b;
++}
++
++.season-effects {
++  position: fixed;
++  inset: 0;
++  overflow: hidden;
++  contain: strict;
++  isolation: isolate;
++  z-index: 28;
++  pointer-events: none;
++}
++.season-effects--sample {
++  position: absolute;
++}
++.season-effects[data-strength="soft"] {
++  --season-strength: 0.65;
++}
++.season-effects[data-strength="medium"] {
++  --season-strength: 0.83;
++}
++.season-effects[data-strength="strong"] {
++  --season-strength: 1;
++}
++.season-effects > *,
++.season-particles i {
++  position: absolute;
++}
++.season-mist {
++  inset: 70% -20% -18%;
++  background:
++    radial-gradient(ellipse at 35% 80%, #8721bb45, transparent 65%),
++    radial-gradient(ellipse at 80% 80%, #5940ae39, transparent 54%);
++  transform-origin: bottom;
++  animation: season-mist 13s ease-in-out infinite alternate;
++}
++.season-particles {
++  inset: 0;
++  opacity: var(--season-strength);
++}
++.season-particles i {
++  left: var(--x);
++  top: var(--y);
++  width: var(--size);
++  aspect-ratio: 1;
++  background: var(--season-metal);
++  border-radius: 50%;
++  animation: season-particle 11s var(--d) ease-in-out infinite;
++}
++[data-season="cyber"] .season-particles i {
++  border-radius: 0;
++}
++.season-pumpkin {
++  right: 2.5%;
++  bottom: 20%;
++  width: clamp(34px, 5vw, 68px);
++  opacity: 0.68;
++}
++.season-pumpkin svg {
++  filter: drop-shadow(0 0 8px #cf658374);
++}
++.season-bat {
++  color: #a176c9;
++  top: 29%;
++  width: 35px;
++  left: 12%;
++  animation: season-bat 22s ease-in-out infinite;
++}
++.season-fireworks {
++  inset: 0;
++  color: var(--season-metal);
++}
++.season-fireworks svg {
++  position: absolute;
++  left: 18%;
++  top: 21%;
++  width: clamp(24px, 5vw, 64px);
++  height: auto;
++  animation: season-burst 17s ease-out infinite;
++}
++.season-fireworks svg + svg {
++  left: 77%;
++  top: 39%;
++  color: var(--season-hue);
++  animation-delay: -7s;
++}
++.season-glow {
++  inset: 0;
++  background: radial-gradient(
++    ellipse at 80% -20%,
++    color-mix(in srgb, var(--season-shadow) 35%, transparent),
++    transparent 56%
++  );
++}
++.season-circuits {
++  width: min(720px, 100%);
++  right: -10%;
++  bottom: 3%;
++  fill: none;
++  stroke: var(--season-hue);
++  stroke-width: 0.8;
++  opacity: 0.24;
++}
++.season-energy {
++  inset: auto 0 22%;
++  height: 1px;
++  background: linear-gradient(90deg, transparent 32%, var(--season-hue) 50%, transparent 68%);
++  animation: season-energy 9s ease-in-out infinite;
++}
++.season-header-line {
++  position: absolute;
++  pointer-events: none;
++  inset: auto 0 0;
++  height: 2px;
++  background: linear-gradient(
++    90deg,
++    transparent,
++    var(--season-hue),
++    var(--season-metal),
++    transparent
++  );
++  box-shadow: 0 0 16px var(--season-shadow);
++  opacity: 0.65;
++}
++.season-logo {
++  position: absolute;
++  pointer-events: none;
++  left: -8px;
++  top: -8px;
++  color: var(--season-metal);
++  filter: drop-shadow(0 0 6px var(--season-hue));
++}
++.season-logo svg {
++  width: 20px;
++  height: 20px;
++}
++.season-footer-mark {
++  pointer-events: none;
++  position: absolute;
++  left: 1.5rem;
++  bottom: 1rem;
++  color: var(--season-metal);
++  opacity: 0.8;
++}
++.season-footer-mark svg {
++  width: 24px;
++  height: auto;
++}
++.season-trim .store-header,
++.season-trim footer,
++.season-trim .store-section {
++  box-shadow: inset 0 1px color-mix(in srgb, var(--season-hue) 40%, transparent);
++}
++[data-season] footer {
++  position: relative;
++}
++.season-countdown {
++  position: fixed;
++  z-index: 29;
++  pointer-events: none;
++  left: 1rem;
++  bottom: max(1rem, env(safe-area-inset-bottom));
++  border: 1px solid color-mix(in srgb, var(--season-hue) 50%, transparent);
++  background: #101018;
++  color: var(--season-metal);
++  padding: 0.35rem 0.65rem;
++  border-radius: 0.5rem;
++  font-size: 0.75rem;
++  font-variant-numeric: tabular-nums;
++}
++.season-sample {
++  background: radial-gradient(ellipse at 75% 100%, var(--season-shadow), #11111a 64%);
++}
++.season-sample .season-countdown {
++  position: absolute;
++}
++.season-card-art {
++  position: relative;
++  isolation: isolate;
++  overflow: hidden;
++  background:
++    repeating-linear-gradient(135deg, transparent 0 17px, #ffffff09 18px 19px),
++    radial-gradient(ellipse at 68% 100%, var(--season-shadow, #252537), #11111a 72%);
++}
++.season-card-art svg {
++  color: var(--season-metal, #c9c5d9);
++  filter: drop-shadow(0 0 12px var(--season-hue, #777489));
++}
++
++@keyframes season-mist {
++  from {
++    transform: translateX(-9%) scale(0.95);
++    opacity: 0.43;
++  }
++  to {
++    transform: translateX(9%) scale(1.1);
++    opacity: 1;
++  }
++}
++@keyframes season-particle {
++  0%,
++  100% {
++    transform: translate3d(0, 18px, 0);
++    opacity: 0;
++  }
++  35% {
++    opacity: 0.55;
++  }
++  75% {
++    opacity: 0.2;
++  }
++  100% {
++    transform: translate3d(14px, -28px, 0);
++  }
++}
++@keyframes season-bat {
++  0%,
++  78%,
++  100% {
++    opacity: 0;
++  }
++  80%,
++  90% {
++    opacity: 0.5;
++  }
++  98%,
++  100% {
++    transform: translate(59vw, -24vh) rotate(-16deg);
++  }
++}
++@keyframes season-burst {
++  0%,
++  78%,
++  97%,
++  100% {
++    opacity: 0;
++    transform: scale(0.6);
++  }
++  85% {
++    opacity: 0.8;
++    transform: scale(1.25);
++  }
++  96% {
++    transform: scale(2);
++  }
++}
++@keyframes season-energy {
++  0%,
++  100% {
++    transform: translateX(-24%);
++    opacity: 0;
++  }
++  50% {
++    transform: translateX(15%);
++    opacity: 0.5;
++  }
++}
++.season-effects[data-paused="true"] * {
++  animation-play-state: paused;
++}
++@media (max-width: 640px), (pointer: coarse) {
++  .season-particles i:nth-child(2n),
++  .season-fireworks svg + svg {
++    display: none;
++  }
++}
++@media (prefers-reduced-motion: reduce) {
++  .season-effects * {
++    animation: none;
++  }
++  .season-particles,
++  .season-bat,
++  .season-fireworks,
++  .season-energy {
++    display: none;
++  }
++}
+diff --git a/src/components/season-effects.tsx b/src/components/season-effects.tsx
+new file mode 100644
+index 0000000..52f5696
+--- /dev/null
++++ b/src/components/season-effects.tsx
+@@ -0,0 +1,172 @@
++import { useEffect, useState, type CSSProperties } from "react";
++import { CircuitBoard, MoonStar, Sparkles } from "lucide-react";
++import { type ThemeId, type ThemeProfile } from "@/lib/theme-engine";
++import "./season-effects.css";
++
++const count = { soft: 12, medium: 22, strong: 32 };
++
++function Pumpkin() {
++  return (
++    <svg viewBox="0 0 76 64" focusable="false" aria-hidden="true">
++      <path d="M37 18c-2-7 2-12 7-13" fill="none" stroke="#b87bf4" strokeWidth="3" />
++      <path
++        d="M38 18C11 6 3 34 12 49c6 10 16 11 26 8 10 3 20 2 26-8C73 34 65 6 38 18Z"
++        fill="#291831"
++        stroke="#c77753"
++      />
++      <path d="M38 19c-14 0-17 26-8 37m8-37c14 0 17 26 8 37" fill="none" stroke="#a35244" />
++      <path d="m19 37 9-9 6 10Zm23 1 6-10 9 9ZM25 43l8 3 5-2 5 2 8-3-5 7H30Z" fill="#ffab66" />
++    </svg>
++  );
++}
++
++export function SeasonLogo({ id }: { id: ThemeId }) {
++  return (
++    <span className="season-logo" aria-hidden="true">
++      {id === "halloween" ? <MoonStar /> : <Sparkles />}
++    </span>
++  );
++}
++
++export function SeasonHeader() {
++  return <span className="season-header-line" aria-hidden="true" />;
++}
++
++export function SeasonFooter({ id }: { id: ThemeId }) {
++  return (
++    <span className="season-footer-mark" aria-hidden="true">
++      {id === "halloween" ? <Pumpkin /> : id === "newyear" ? <Sparkles /> : <CircuitBoard />}
++    </span>
++  );
++}
++
++export function SeasonCountdown({ target, now }: { target: string; now: number }) {
++  const [remaining, setRemaining] = useState(() =>
++    Math.max(0, Math.ceil((Date.parse(target) - now) / 1000)),
++  );
++  useEffect(() => {
++    const anchor = performance.now();
++    let timer: ReturnType<typeof setTimeout>;
++    function sync() {
++      clearTimeout(timer);
++      const seconds = Math.max(
++        0,
++        Math.ceil((Date.parse(target) - now - (performance.now() - anchor)) / 1000),
++      );
++      setRemaining(seconds);
++      if (seconds && !document.hidden) timer = setTimeout(sync, 1000);
++    }
++    sync();
++    document.addEventListener("visibilitychange", sync);
++    return () => {
++      clearTimeout(timer);
++      document.removeEventListener("visibilitychange", sync);
++    };
++  }, [target, now]);
++  const format = (n: number) => String(n).padStart(2, "0");
++  return (
++    <span className="season-countdown" role="timer" aria-label="Contagem regressiva">
++      {remaining ? (
++        <>
++          <span>Virada em</span>{" "}
++          <time dateTime={target}>
++            {Math.floor(remaining / 86400)}d {format(Math.floor(remaining / 3600) % 24)}:
++            {format(Math.floor(remaining / 60) % 60)}:{format(remaining % 60)}
++          </time>
++        </>
++      ) : (
++        "Feliz Ano-Novo"
++      )}
++    </span>
++  );
++}
++
++export function SeasonEffects({
++  id,
++  profile,
++  embedded = false,
++}: {
++  id: Exclude<ThemeId, "christmas">;
++  profile: ThemeProfile;
++  embedded?: boolean;
++}) {
++  const e = profile.effects;
++  const [hidden, setHidden] = useState(false);
++  useEffect(() => {
++    const sync = () => setHidden(document.hidden);
++    sync();
++    document.addEventListener("visibilitychange", sync);
++    return () => document.removeEventListener("visibilitychange", sync);
++  }, []);
++  return (
++    <div
++      aria-hidden="true"
++      data-season={id}
++      className={`season-effects${embedded ? " season-effects--sample" : ""}`}
++      data-paused={hidden}
++      data-strength={profile.intensity}
++    >
++      {e.mist && <span className="season-mist" />}
++      {e.particles && (
++        <span className="season-particles">
++          {Array.from({ length: count[profile.intensity] }, (_, i) => (
++            <i
++              key={i}
++              style={
++                {
++                  "--x": `${(i * 37 + 5) % 99}%`,
++                  "--y": `${(i * 23 + 12) % 95}%`,
++                  "--d": `-${i * 1.13}s`,
++                  "--size": `${(i % 3) + 2}px`,
++                } as CSSProperties
++              }
++            />
++          ))}
++        </span>
++      )}
++      {e.pumpkins && (
++        <span className="season-pumpkin">
++          <Pumpkin />
++        </span>
++      )}
++      {e.bats && (
++        <span className="season-bat">
++          <svg viewBox="0 0 80 32" focusable="false">
++            <path
++              fill="currentColor"
++              d="M40 27 35 18C28 17 25 8 18 8 9 8 2 14 0 19c8-4 14-1 16 4 8-4 15-1 24 4 9-5 16-8 24-4 2-5 8-8 16-4-2-5-9-11-18-11-7 0-10 9-17 10l-5 9Z"
++            />
++          </svg>
++        </span>
++      )}
++      {e.fireworks && (
++        <span className="season-fireworks">
++          {[0, 1].map((i) => (
++            <svg key={i} viewBox="0 0 80 80" fill="none" stroke="currentColor" focusable="false">
++              <path
++                d="M40 5v21m0 28v21M5 40h21m28 0h21M15 15l14 14m22 22 14 14M15 65l14-14m22-22 14-14M26 6l8 21m12 26 8 21M6 54l21-8m26-12 21-8"
++                strokeWidth="1.5"
++                strokeLinecap="round"
++              />
++              <circle cx="40" cy="40" r="4" fill="currentColor" />
++              <circle cx="40" cy="40" r="17" opacity=".44" strokeDasharray="1 6" />
++            </svg>
++          ))}
++        </span>
++      )}
++      {e.glow && <span className="season-glow" />}
++      {e.circuits && (
++        <svg className="season-circuits" viewBox="0 0 500 210" focusable="false">
++          <path d="M0 20h130l45 45h68m-243-23h107l55 55h54M0 64h72l55 55h66M500 139H386l-37-37h-85m236 59H373l-36-36h-90m253 58H360l-35-35h-60" />
++          <circle cx="243" cy="65" r="4" />
++          <circle cx="216" cy="97" r="4" />
++          <circle cx="193" cy="119" r="4" />
++          <circle cx="264" cy="102" r="4" />
++          <circle cx="247" cy="125" r="4" />
++          <circle cx="265" cy="148" r="4" />
++        </svg>
++      )}
++      {e.energy && <span className="season-energy" />}
++    </div>
++  );
++}
 diff --git a/src/components/seasonal-theme-settings.test.tsx b/src/components/seasonal-theme-settings.test.tsx
 new file mode 100644
-index 0000000..e73d211
+index 0000000..619abee
 --- /dev/null
 +++ b/src/components/seasonal-theme-settings.test.tsx
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,83 @@
 +import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
++import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 +import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-+import { DEFAULT_SEASON, type SeasonSettings } from "@/lib/seasons";
++import { migrateEngine, type ThemeEngine } from "@/lib/theme-engine";
 +
 +const persistence = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn() }));
 +vi.mock("@/lib/settings", () => ({
 +  settingsQuery: { queryKey: ["site_settings"], queryFn: persistence.read },
 +  saveSeason: persistence.save,
++}));
++vi.mock("@/components/season-clock", () => ({
++  useSeasonClock: () => Date.parse("2026-11-14T00:00:00Z"),
 +}));
 +vi.mock("@/components/shop", () => ({ WhatsAppIcon: () => null }));
 +
@@ -426,9 +945,9 @@ index 0000000..e73d211
 +  );
 +}
 +
-+let stored: SeasonSettings;
++let stored: ThemeEngine;
 +beforeEach(() => {
-+  stored = DEFAULT_SEASON;
++  stored = migrateEngine(undefined);
 +  persistence.read.mockReset().mockImplementation(async () => ({ season: stored }));
 +  persistence.save.mockReset().mockImplementation(async (value) => {
 +    stored = value;
@@ -436,52 +955,62 @@ index 0000000..e73d211
 +});
 +afterEach(cleanup);
 +
++function card(name: string) {
++  const article = screen.getByRole("heading", { name }).closest("article");
++  if (!article) throw new Error("Cartão ausente.");
++  return within(article);
++}
++
 +describe("Aparência sazonal", () => {
-+  it("previews the draft, then saves, reloads and restores the original", async () => {
++  it("previews, activates, reloads and restores the original", async () => {
 +    const panel = openPanel();
-+    const save = screen.getByRole("button", { name: "Salvar aparência" });
-+    await waitFor(() => expect(save).toBeEnabled());
-+    fireEvent.click(screen.getByRole("switch", { name: "Modo Natal" }));
-+    fireEvent.change(screen.getByLabelText("Intensidade da neve"), { target: { value: "medium" } });
-+    fireEvent.click(screen.getByRole("button", { name: "Pré-visualizar" }));
-+    expect(await screen.findByRole("dialog", { name: "Prévia Black Ice" })).toBeVisible();
++    const christmas = card("Black Ice");
++    const enable = christmas.getByRole("button", { name: "Ativar agora" });
++    await waitFor(() => expect(enable).toBeEnabled());
++    fireEvent.click(christmas.getByRole("button", { name: "Personalizar" }));
++    fireEvent.change(screen.getByLabelText("Intensidade"), { target: { value: "medium" } });
++    fireEvent.click(christmas.getByRole("button", { name: "Pré-visualizar" }));
++    expect(await screen.findByRole("dialog", { name: "Prévia · Black Ice" })).toBeVisible();
 +    expect(screen.getByText("Boas festas, da equipe Crazy Pods.")).toBeVisible();
 +    expect(persistence.save).not.toHaveBeenCalled();
 +    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
-+
-+    fireEvent.click(save);
-+    expect(await screen.findByText("Aparência sazonal salva.")).toBeVisible();
-+    expect(stored).toMatchObject({ enabled: true, snow: "medium" });
++    fireEvent.click(enable);
++    expect(await screen.findByText("Black Ice ativado.")).toBeVisible();
++    expect(stored.manual).toBe("christmas");
++    expect(stored.profiles.christmas.intensity).toBe("medium");
 +    panel.unmount();
 +
 +    openPanel();
-+    await waitFor(() => expect(screen.getByRole("switch", { name: "Modo Natal" })).toBeChecked());
-+    fireEvent.click(screen.getByRole("button", { name: "Restaurar aparência original" }));
-+    expect(await screen.findByText("Aparência original restaurada.")).toBeVisible();
-+    expect(stored).toEqual(DEFAULT_SEASON);
++    expect(await screen.findByText("Tema ativo · Black Ice")).toBeVisible();
++    fireEvent.click(screen.getByRole("button", { name: "Restaurar original" }));
++    expect(await screen.findByText(/Aparência original restaurada/)).toBeVisible();
++    expect(stored).toMatchObject({ manual: null, pauseSchedule: true });
++    expect(stored.profiles.christmas.intensity).toBe("medium");
 +  });
 +
-+  it("displays permission errors and keeps the draft available", async () => {
-+    persistence.save.mockRejectedValueOnce(new Error("Policy denied"));
++  it("reports a denied write and keeps the draft available", async () => {
++    persistence.save.mockRejectedValueOnce({ code: "42501" });
 +    openPanel();
-+    const save = screen.getByRole("button", { name: "Salvar aparência" });
-+    await waitFor(() => expect(save).toBeEnabled());
-+    fireEvent.click(screen.getByRole("switch", { name: "Modo Natal" }));
-+    fireEvent.click(save);
++    const halloween = card("Dark Ritual");
++    const enable = halloween.getByRole("button", { name: "Ativar agora" });
++    await waitFor(() => expect(enable).toBeEnabled());
++    fireEvent.click(halloween.getByRole("button", { name: "Personalizar" }));
++    fireEvent.click(screen.getByRole("switch", { name: "Névoa" }));
++    fireEvent.click(enable);
 +    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível salvar.");
-+    expect(screen.getByRole("switch", { name: "Modo Natal" })).toBeChecked();
-+    expect(stored).toEqual(DEFAULT_SEASON);
++    expect(screen.getByRole("switch", { name: "Névoa" })).not.toBeChecked();
++    expect(stored.manual).toBeNull();
 +  });
 +});
 diff --git a/src/components/seasonal-theme-settings.tsx b/src/components/seasonal-theme-settings.tsx
 new file mode 100644
-index 0000000..33175d2
+index 0000000..29d6b04
 --- /dev/null
 +++ b/src/components/seasonal-theme-settings.tsx
-@@ -0,0 +1,232 @@
+@@ -0,0 +1,424 @@
 +import { useState } from "react";
 +import { useQuery, useQueryClient } from "@tanstack/react-query";
-+import { Eye, Snowflake } from "lucide-react";
++import { CircuitBoard, MoonStar, Snowflake, Sparkles, Circle } from "lucide-react";
 +import logo from "@/assets/crazy-pods-logo.png.asset.json";
 +import { Button } from "@/components/ui/button";
 +import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -493,62 +1022,90 @@ index 0000000..33175d2
 +  ChristmasHeaderLights,
 +  SnowfallEffect,
 +} from "@/components/christmas-theme";
++import {
++  SeasonCountdown,
++  SeasonEffects,
++  SeasonFooter,
++  SeasonHeader,
++  SeasonLogo,
++} from "@/components/season-effects";
++import { useSeasonClock } from "@/components/season-clock";
 +import { WhatsAppIcon } from "@/components/shop";
 +import {
-+  DEFAULT_SEASON,
-+  fromLocalSchedule,
-+  toLocalSchedule,
-+  type SeasonSettings,
-+} from "@/lib/seasons";
++  activeTheme,
++  christmasSettings,
++  formatThemeDate,
++  migrateEngine,
++  parseThemeDate,
++  scheduleError,
++  THEMES,
++  THEME_IDS,
++  type ThemeEngine,
++  type ThemeId,
++  type ThemeProfile,
++} from "@/lib/theme-engine";
 +import { saveSeason, settingsQuery } from "@/lib/settings";
 +
-+const toggles = [
-+  ["enabled", "Modo Natal"],
-+  ["whatsappHat", "Gorro do WhatsApp"],
-+  ["logoHat", "Decoração da logo"],
-+  ["lights", "Luzes natalinas"],
-+  ["trim", "Decoração do cabeçalho, banner e rodapé"],
-+] as const;
-+
++const icons = { christmas: Snowflake, halloween: MoonStar, newyear: Sparkles, cyber: CircuitBoard };
 +const fieldClass =
 +  "mt-1 block w-full min-w-0 rounded-lg border border-input bg-secondary px-3 py-2 text-sm [color-scheme:dark]";
 +
 +export function SeasonalThemeSettings() {
 +  const query = useQuery(settingsQuery);
 +  const client = useQueryClient();
-+  const [draft, setDraft] = useState<SeasonSettings>();
-+  const [preview, setPreview] = useState(false);
++  const [base, setBase] = useState<ThemeEngine>();
++  const [draft, setDraft] = useState<ThemeEngine>();
++  const [editing, setEditing] = useState<ThemeId>();
++  const [preview, setPreview] = useState<ThemeId | "original">();
 +  const [saving, setSaving] = useState(false);
 +  const [status, setStatus] = useState("");
 +  const [error, setError] = useState("");
-+  const season = draft ?? query.data?.season ?? DEFAULT_SEASON;
-+  const invalidRange = !!(
-+    season.start &&
-+    season.end &&
-+    Date.parse(season.start) >= Date.parse(season.end)
-+  );
++  const saved = query.data?.season ?? DEFAULT_ENGINE;
++  const engine = draft ?? saved;
++  const now = useSeasonClock(saved, !!query.data && !query.isError);
++  const current = saved.manual ?? (now === undefined ? null : activeTheme(saved, now));
++  const conflict = scheduleError(engine);
++  const unavailable = saving || query.isPending || query.isError;
 +
-+  function set<K extends keyof SeasonSettings>(key: K, value: SeasonSettings[K]) {
-+    setDraft({ ...season, [key]: value });
++  function change(id: ThemeId, patch: Partial<ThemeProfile>) {
++    setBase(base ?? saved);
++    setDraft({
++      ...engine,
++      profiles: { ...engine.profiles, [id]: { ...engine.profiles[id], ...patch } },
++    });
 +    setStatus("");
 +    setError("");
 +  }
 +
-+  async function save(value: SeasonSettings) {
++  async function save(next: ThemeEngine, message: string) {
++    const invalid = scheduleError(next);
++    if (invalid) {
++      setError(invalid);
++      return;
++    }
++    if (next.profiles.newyear.effects.countdown && !next.profiles.newyear.countdown) {
++      setError("Defina o horário da contagem regressiva de Midnight.");
++      return;
++    }
++    setSaving(true);
 +    setStatus("");
 +    setError("");
-+    setSaving(true);
 +    try {
-+      await saveSeason(value);
++      await saveSeason(next, base ?? saved);
 +      client.setQueryData(
 +        settingsQuery.queryKey,
-+        (previous) => previous && { ...previous, season: value },
++        (previous) => previous && { ...previous, season: next },
 +      );
 +      setDraft(undefined);
-+      setStatus(value.enabled ? "Aparência sazonal salva." : "Aparência original restaurada.");
++      setBase(undefined);
++      setStatus(message);
 +      void client.invalidateQueries({ queryKey: settingsQuery.queryKey });
-+    } catch {
-+      setError("Não foi possível salvar. Confira a conexão e as permissões da sua conta.");
++    } catch (cause) {
++      setError(
++        cause instanceof Error
++          ? cause.message
++          : "Não foi possível salvar. Confira a conexão e as permissões da sua conta.",
++      );
 +    } finally {
 +      setSaving(false);
 +    }
@@ -559,14 +1116,17 @@ index 0000000..33175d2
 +      className="rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-400/10 to-background p-5 sm:p-6"
 +      aria-labelledby="seasons-heading"
 +    >
-+      <div className="flex items-center gap-3">
-+        <Snowflake aria-hidden="true" className="size-8 shrink-0 text-violet-200" />
++      <div className="flex flex-wrap items-start justify-between gap-3">
 +        <div>
 +          <p className="text-xs text-muted-foreground">Aparência sazonal</p>
 +          <h2 id="seasons-heading" className="font-display text-xl font-bold">
-+            CRAZY SEASONS
++            CRAZY SEASONS 2.0
 +          </h2>
-+          <p className="text-sm text-violet-200">Christmas Edition — Black Ice</p>
++          <p className="text-sm text-violet-200">Theme Control</p>
++        </div>
++        <div className="text-sm text-muted-foreground">
++          {current ? `Tema ativo · ${THEMES[current].name}` : "Aparência original"}
++          {saved.pauseSchedule && <p>Agenda pausada</p>}
 +        </div>
 +      </div>
 +      {query.isPending && (
@@ -576,146 +1136,310 @@ index 0000000..33175d2
 +      )}
 +      {query.isError && (
 +        <p role="alert" className="mt-4 text-sm text-red-300">
-+          Não foi possível consultar a configuração.{" "}
++          Configuração indisponível.{" "}
 +          <button type="button" className="underline" onClick={() => void query.refetch()}>
 +            Tentar novamente
 +          </button>
 +        </p>
 +      )}
-+      <fieldset
-+        className="mt-4 grid gap-3 sm:grid-cols-2"
-+        disabled={saving || query.isPending || query.isError}
-+      >
-+        {toggles.map(([key, label]) => (
-+          <label
-+            key={key}
-+            className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
-+          >
-+            {label}
-+            <Switch
-+              className="shrink-0"
-+              checked={season[key]}
-+              onCheckedChange={(value) => set(key, value)}
-+            />
-+          </label>
-+        ))}
-+        <label className="text-sm">
-+          Intensidade da neve
-+          <select
-+            className={fieldClass}
-+            value={season.snow}
-+            onChange={(e) => set("snow", e.target.value as SeasonSettings["snow"])}
-+          >
-+            <option value="soft">Suave</option>
-+            <option value="medium">Média</option>
-+            <option value="strong">Intensa</option>
-+          </select>
-+        </label>
-+        <label className="min-w-0 text-sm">
-+          Início
-+          <input
-+            className={fieldClass}
-+            type="datetime-local"
-+            value={toLocalSchedule(season.start)}
-+            onChange={(e) => set("start", fromLocalSchedule(e.target.value))}
-+          />
-+        </label>
-+        <label className="min-w-0 text-sm">
-+          Término
-+          <input
-+            className={fieldClass}
-+            type="datetime-local"
-+            value={toLocalSchedule(season.end)}
-+            onChange={(e) => set("end", fromLocalSchedule(e.target.value))}
-+          />
-+        </label>
-+      </fieldset>
-+      <p className="mt-2 text-xs text-muted-foreground">
-+        Horário de Brasília. Com o modo ativado, datas vazias deixam o tema disponível imediatamente
-+        e sem término.
-+      </p>
-+      {invalidRange && (
-+        <p role="alert" className="mt-2 text-sm text-red-300">
-+          O término precisa ser posterior ao início.
++      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
++        <article className="overflow-hidden rounded-xl border border-border bg-background">
++          <div className="season-card-art grid h-20 place-items-center">
++            <Circle className="size-7" aria-hidden="true" />
++          </div>
++          <div className="space-y-2 p-3">
++            <h3 className="font-semibold">Original</h3>
++            <p className="text-xs text-muted-foreground">Identidade padrão da loja.</p>
++            <div className="flex flex-wrap gap-2">
++              <Button
++                type="button"
++                variant="outline"
++                size="sm"
++                onClick={() => setPreview("original")}
++              >
++                Pré-visualizar
++              </Button>
++              <Button
++                type="button"
++                variant="ghost"
++                size="sm"
++                disabled={unavailable}
++                onClick={() =>
++                  void save(
++                    { ...saved, manual: null, pauseSchedule: true },
++                    "Aparência original restaurada. Agenda pausada.",
++                  )
++                }
++              >
++                Restaurar original
++              </Button>
++            </div>
++          </div>
++        </article>
++        {THEME_IDS.map((id) => {
++          const { name, event, caption } = THEMES[id];
++          const Icon = icons[id];
++          return (
++            <article
++              key={id}
++              className="overflow-hidden rounded-xl border border-border bg-background"
++            >
++              <div data-season={id} className="season-card-art grid h-20 place-items-center">
++                <Icon className="size-8" aria-hidden="true" />
++              </div>
++              <div className="space-y-2 p-3">
++                <div className="flex items-center justify-between gap-2">
++                  <h3 className="font-semibold">{name}</h3>
++                  <span className="text-xs text-violet-200">
++                    {current === id
++                      ? "Ativo"
++                      : saved.profiles[id].scheduled
++                        ? "Programado"
++                        : "Inativo"}
++                  </span>
++                </div>
++                <p className="text-xs text-muted-foreground">
++                  {event} · {caption}
++                </p>
++                <div className="flex flex-wrap gap-2">
++                  <Button type="button" variant="outline" size="sm" onClick={() => setPreview(id)}>
++                    Pré-visualizar
++                  </Button>
++                  <Button
++                    type="button"
++                    variant="ghost"
++                    size="sm"
++                    aria-expanded={editing === id}
++                    aria-controls="season-editor"
++                    onClick={() => setEditing(editing === id ? undefined : id)}
++                  >
++                    Personalizar
++                  </Button>
++                  <Button
++                    type="button"
++                    size="sm"
++                    disabled={unavailable || !!conflict}
++                    onClick={() => void save({ ...engine, manual: id }, `${name} ativado.`)}
++                  >
++                    Ativar agora
++                  </Button>
++                </div>
++              </div>
++            </article>
++          );
++        })}
++      </div>
++
++      {editing && (
++        <fieldset
++          id="season-editor"
++          className="mt-5 rounded-xl border border-border p-4"
++          disabled={unavailable}
++        >
++          <legend className="px-2 font-semibold">{THEMES[editing].name}</legend>
++          <div className="grid gap-3 sm:grid-cols-2">
++            {Object.entries(THEMES[editing].effects).map(([key, label]) => (
++              <label
++                key={key}
++                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
++              >
++                {label}
++                <Switch
++                  checked={!!engine.profiles[editing].effects[key as keyof ThemeProfile["effects"]]}
++                  onCheckedChange={(value) =>
++                    change(editing, {
++                      effects: { ...engine.profiles[editing].effects, [key]: value },
++                    })
++                  }
++                />
++              </label>
++            ))}
++            <label className="text-sm">
++              Intensidade
++              <select
++                className={fieldClass}
++                value={engine.profiles[editing].intensity}
++                onChange={(event) =>
++                  change(editing, { intensity: event.target.value as ThemeProfile["intensity"] })
++                }
++              >
++                <option value="soft">Suave</option>
++                <option value="medium">Média</option>
++                <option value="strong">Intensa</option>
++              </select>
++            </label>
++            <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
++              Agendar ativação{" "}
++              <Switch
++                checked={engine.profiles[editing].scheduled}
++                onCheckedChange={(scheduled) => change(editing, { scheduled })}
++              />
++            </label>
++            {(
++              [
++                "start",
++                "end",
++                ...(editing === "newyear" && engine.profiles.newyear.effects.countdown
++                  ? ["countdown"]
++                  : []),
++              ] as const
++            ).map((field) => {
++              const key = field as "start" | "end" | "countdown";
++              return (
++                <label key={key} className="min-w-0 text-sm">
++                  {{ start: "Início", end: "Término", countdown: "Horário da virada" }[key]}
++                  <input
++                    className={fieldClass}
++                    type="datetime-local"
++                    value={formatThemeDate(engine.profiles[editing][key])}
++                    onChange={(event) => {
++                      try {
++                        change(editing, { [key]: parseThemeDate(event.target.value) });
++                      } catch (cause) {
++                        setError(cause instanceof Error ? cause.message : "Horário inválido.");
++                      }
++                    }}
++                  />
++                </label>
++              );
++            })}
++          </div>
++          <p className="mt-3 text-xs text-muted-foreground">
++            Horário de Brasília (America/Sao_Paulo). Um tema ativo manualmente tem prioridade sobre
++            os agendados.
++          </p>
++        </fieldset>
++      )}
++      {conflict && (
++        <p role="alert" className="mt-3 text-sm text-red-300">
++          {conflict}
 +        </p>
 +      )}
 +      {error && (
-+        <p role="alert" className="mt-2 text-sm text-red-300">
++        <p role="alert" className="mt-3 text-sm text-red-300">
 +          {error}
 +        </p>
 +      )}
 +      {status && (
-+        <p role="status" className="mt-2 text-sm text-violet-200">
++        <p role="status" className="mt-3 text-sm text-violet-200">
 +          {status}
 +        </p>
 +      )}
 +      <div className="mt-4 flex flex-wrap gap-2">
-+        <Button type="button" variant="outline" onClick={() => setPreview(true)}>
-+          <Eye /> Pré-visualizar
++        <Button
++          type="button"
++          disabled={unavailable || !draft || !!conflict}
++          onClick={() => void save(engine, "Configurações salvas.")}
++        >
++          {saving ? "Salvando…" : "Salvar configurações"}
 +        </Button>
 +        <Button
 +          type="button"
-+          disabled={saving || query.isPending || query.isError || invalidRange}
-+          onClick={() => void save(season)}
++          variant="outline"
++          disabled={unavailable || !!conflict}
++          onClick={() =>
++            void save(
++              { ...engine, manual: null, pauseSchedule: false },
++              "Agenda automática em uso.",
++            )
++          }
 +        >
-+          {saving ? "Salvando…" : "Salvar aparência"}
++          Usar agenda automática
 +        </Button>
-+        <Button
-+          type="button"
-+          variant="ghost"
-+          disabled={saving || query.isPending || query.isError}
-+          onClick={() => void save(DEFAULT_SEASON)}
-+        >
-+          Restaurar aparência original
-+        </Button>
-+      </div>
-+      <Dialog open={preview} onOpenChange={setPreview}>
-+        <DialogContent className="w-[calc(100%-2rem)] max-w-lg">
-+          <DialogTitle>Prévia Black Ice</DialogTitle>
-+          <DialogDescription>
-+            A amostra mostra o estado do rascunho sem aplicar as datas agendadas.
-+          </DialogDescription>
-+          <div
-+            className={`black-ice-preview-stage overflow-hidden rounded-xl border border-border bg-background${season.enabled && season.trim ? " black-ice-trim" : ""}`}
++        {draft && (
++          <Button
++            type="button"
++            variant="ghost"
++            disabled={saving}
++            onClick={() => {
++              setDraft(undefined);
++              setBase(undefined);
++              setError("");
++            }}
 +          >
-+            <div className="store-header relative flex items-center gap-3 p-4">
-+              <span className="relative">
-+                <img src={logo.url} alt="" className="size-11 rounded-lg" />
-+                {season.enabled && season.logoHat && <ChristmasHat target="logo" />}
-+              </span>
-+              <strong className="font-display">CRAZY PODS</strong>
-+              {season.enabled && season.lights && <ChristmasHeaderLights />}
-+            </div>
-+            <div className="black-ice-hero grid h-40 place-items-center bg-gradient-to-br from-slate-900 via-background to-violet-950">
-+              <span className="font-display text-xl tracking-[.25em] text-violet-100">
-+                BLACK ICE
-+              </span>
-+              <ChristmasCrystals />
-+              <span
-+                aria-hidden="true"
-+                className="absolute bottom-3 right-4 grid size-11 place-items-center rounded-full bg-whatsapp text-white"
-+              >
-+                <WhatsAppIcon className="size-5" />
-+                {season.enabled && season.whatsappHat && <ChristmasHat target="whatsapp" />}
-+              </span>
-+            </div>
-+            {season.enabled && season.trim && (
-+              <footer className="p-3">
-+                <ChristmasFooterMessage />
-+              </footer>
-+            )}
-+            {season.enabled && <SnowfallEffect intensity={season.snow} />}
-+          </div>
++            Descartar rascunho
++          </Button>
++        )}
++      </div>
++      <Dialog open={!!preview} onOpenChange={(open) => !open && setPreview(undefined)}>
++        <DialogContent className="w-[calc(100%-2rem)] max-w-lg">
++          <DialogTitle>
++            {preview && preview !== "original"
++              ? `Prévia · ${THEMES[preview].name}`
++              : "Prévia · Original"}
++          </DialogTitle>
++          <DialogDescription>Amostra dos efeitos do rascunho.</DialogDescription>
++          {preview && <ThemeSample id={preview} engine={engine} now={now} />}
 +        </DialogContent>
 +      </Dialog>
 +    </section>
 +  );
 +}
++
++const DEFAULT_ENGINE = migrateEngine(undefined);
++
++function ThemeSample({
++  id,
++  engine,
++  now,
++}: {
++  id: ThemeId | "original";
++  engine: ThemeEngine;
++  now: number | undefined;
++}) {
++  const p = id === "original" ? undefined : engine.profiles[id];
++  const christmas = id === "christmas";
++  const ice = christmasSettings(engine);
++  return (
++    <div
++      data-season={id === "original" ? undefined : id}
++      className={`season-sample relative isolate overflow-hidden rounded-xl border border-border${christmas && ice.trim ? " black-ice-trim" : ""}${!christmas && p?.effects.trim ? " season-trim" : ""}`}
++    >
++      <div className="store-header relative flex items-center gap-3 p-4">
++        <span className="relative">
++          <img src={logo.url} alt="" className="size-11 rounded-lg" />
++          {christmas && ice.logoHat && <ChristmasHat target="logo" />}
++          {id !== "original" && !christmas && p?.effects.logo && <SeasonLogo id={id} />}
++        </span>
++        <strong className="font-display">CRAZY PODS</strong>
++        {christmas && ice.lights && <ChristmasHeaderLights />}
++        {!christmas && p?.effects.lights && <SeasonHeader />}
++      </div>
++      <div className="black-ice-hero grid h-40 place-items-center">
++        <span className="font-display text-xl tracking-widest">
++          {id === "original" ? "CRAZY PODS" : THEMES[id].name.toUpperCase()}
++        </span>
++        {christmas && <ChristmasCrystals />}
++        <span
++          aria-hidden="true"
++          className="absolute bottom-3 right-4 grid size-11 place-items-center rounded-full bg-whatsapp text-white"
++        >
++          <WhatsAppIcon className="size-5" />
++          {christmas && ice.whatsappHat && <ChristmasHat target="whatsapp" />}
++        </span>
++        {id === "newyear" && p?.effects.countdown && p.countdown && now !== undefined && (
++          <SeasonCountdown now={now} target={p.countdown} />
++        )}
++      </div>
++      <footer className="relative h-10">
++        {christmas && ice.trim && <ChristmasFooterMessage />}
++        {id !== "original" &&
++          !christmas &&
++          (p?.effects.trim || (id === "cyber" && p?.effects.lights)) && <SeasonFooter id={id} />}
++      </footer>
++      {christmas && p?.effects.snow && <SnowfallEffect intensity={ice.snow} />}
++      {id !== "original" && !christmas && p && <SeasonEffects id={id} profile={p} embedded />}
++    </div>
++  );
++}
 diff --git a/src/components/shop.tsx b/src/components/shop.tsx
-index 8884868..039f175 100644
+index 8884868..209b617 100644
 --- a/src/components/shop.tsx
 +++ b/src/components/shop.tsx
-@@ -1,4 +1,12 @@
+@@ -1,4 +1,14 @@
++import { activeTheme, christmasSettings } from "@/lib/theme-engine";
++import { useSeasonClock } from "@/components/season-clock";
++import { SeasonCountdown, SeasonEffects, SeasonFooter, SeasonHeader, SeasonLogo } from "@/components/season-effects";
  import logo from "@/assets/crazy-pods-logo.png.asset.json";
 +import {
 +  ChristmasCrystals,
@@ -723,12 +1447,11 @@ index 8884868..039f175 100644
 +  ChristmasHat,
 +  ChristmasHeaderLights,
 +  SnowfallEffect,
-+  useChristmasTheme,
 +} from "@/components/christmas-theme";
  import { AgeGate } from "@/components/age-gate";
  import { photoStyle } from "@/lib/photo-layout";
  import { Link, useNavigate } from "@tanstack/react-router";
-@@ -136,9 +144,9 @@ export function WhatsAppIcon({ className }: { className?: string }) {
+@@ -136,9 +146,9 @@ export function WhatsAppIcon({ className }: { className?: string }) {
  }
  
  export function useSettings() {
@@ -740,29 +1463,40 @@ index 8884868..039f175 100644
  }
  const waOrder = (WA_NUM: string, p: Product, flavor?: string) =>
    WA_NUM +
-@@ -202,7 +210,10 @@ export function ShopShell({ children }: { children: ReactNode }) {
+@@ -202,7 +212,17 @@ export function ShopShell({ children }: { children: ReactNode }) {
  
  function ShopContent({ children }: { children: ReactNode }) {
    const navigate = useNavigate();
 -  const { s: settings, WA, WA_NUM } = useSettings();
 +  const { s: settings, settingsAvailable, WA, WA_NUM } = useSettings();
-+  const season = settings.season ?? DEFAULT_SETTINGS.season;
-+  const christmas = useChristmasTheme(season, settingsAvailable);
++  const engine = settings.season;
++  const now = useSeasonClock(engine, settingsAvailable);
++  const current = settingsAvailable && engine.manual
++    ? engine.manual
++    : now === undefined ? null : activeTheme(engine, now);
++  const season = christmasSettings(engine);
++  const christmas = current === "christmas";
 +  const trim = christmas && season.trim;
++  const other = current && current !== "christmas" ? current : null;
++  const profile = other ? engine.profiles[other] : null;
    const [items, setItems] = useState<CartItem[]>([]);
    const [cartOpen, setCartOpen] = useState(false);
    const [open, setOpen] = useState<{ p: Product; i: number } | null>(null);
-@@ -253,7 +264,8 @@ function ShopContent({ children }: { children: ReactNode }) {
+@@ -253,7 +273,12 @@ function ShopContent({ children }: { children: ReactNode }) {
  
    return (
      <ShopCtx.Provider value={{ openPod }}>
 -      <div className="min-h-screen overflow-x-hidden">
-+      <div className={`min-h-screen overflow-x-hidden${trim ? " black-ice-trim" : ""}`}>
-+        {christmas && <div className="black-ice-store-snow"><SnowfallEffect intensity={season.snow} /></div>}
++      <div data-season={current ?? undefined} className={`min-h-screen overflow-x-hidden${trim ? " black-ice-trim" : ""}${profile?.effects.trim ? " season-trim" : ""}`}>
++        {christmas && engine.profiles.christmas.effects.snow && <div className="black-ice-store-snow"><SnowfallEffect intensity={season.snow} /></div>}
++        {other && profile && <SeasonEffects id={other} profile={profile} />}
++        {other === "newyear" && profile?.effects.countdown && profile.countdown && now !== undefined && (
++          <SeasonCountdown now={now} target={profile.countdown} />
++        )}
          <div className="border-b border-border bg-muted/50 text-xs">
            <div className="flex overflow-hidden whitespace-nowrap py-2">
              <div className="flex animate-marquee gap-12 pr-12">
-@@ -282,7 +294,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+@@ -282,7 +307,7 @@ function ShopContent({ children }: { children: ReactNode }) {
              <Link
                to="/"
                aria-label="Crazy Pods — Início"
@@ -771,31 +1505,34 @@ index 8884868..039f175 100644
              >
                <img
                  src={logo.url}
-@@ -291,6 +303,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+@@ -291,6 +316,8 @@ function ShopContent({ children }: { children: ReactNode }) {
                  height={80}
                  className="h-20 w-20 rounded-md border border-border object-cover"
                />
 +              {christmas && season.logoHat && <ChristmasHat target="logo" />}
++              {other && profile?.effects.logo && <SeasonLogo id={other} />}
                <span className="hidden font-display text-sm font-bold xl:block">CRAZY PODS</span>
              </Link>
              <nav aria-label="Navegação principal" className="hidden items-center gap-1 md:flex">
-@@ -367,6 +380,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+@@ -367,6 +394,8 @@ function ShopContent({ children }: { children: ReactNode }) {
                <ArrowUpRight />
              </Button>
            </form>
 +          {christmas && season.lights && <ChristmasHeaderLights />}
++          {other && profile?.effects.lights && <SeasonHeader />}
          </header>
  
          <main>{children}</main>
-@@ -395,6 +409,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+@@ -395,6 +424,8 @@ function ShopContent({ children }: { children: ReactNode }) {
              ))}
            </div>
            <p className="mt-4">Venda proibida para menores de 18 anos.</p>
 +          {trim && <><ChristmasCrystals /><ChristmasFooterMessage /></>}
++          {other && (profile?.effects.trim || (other === "cyber" && profile?.effects.lights)) && <SeasonFooter id={other} />}
          </footer>
  
          <a
-@@ -405,6 +420,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+@@ -405,6 +436,7 @@ function ShopContent({ children }: { children: ReactNode }) {
            className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-whatsapp text-primary-foreground shadow-glow transition hover:scale-110"
          >
            <WhatsAppIcon className="h-7 w-7" />
@@ -905,20 +1642,20 @@ index 0000000..0d6b4f2
 +  return value ? new Date(Date.parse(value) - 3 * 3600000).toISOString().slice(0, 16) : "";
 +}
 diff --git a/src/lib/settings.ts b/src/lib/settings.ts
-index 960c3fd..455149b 100644
+index 960c3fd..e5516db 100644
 --- a/src/lib/settings.ts
 +++ b/src/lib/settings.ts
 @@ -1,3 +1,5 @@
 +import type { Json } from "@/integrations/supabase/types";
-+import { DEFAULT_SEASON, readSeason, type SeasonSettings } from "./seasons";
++import { migrateEngine, readEngine, type ThemeEngine } from "./theme-engine";
  import { queryOptions } from "@tanstack/react-query";
  import { supabase } from "@/integrations/supabase/client";
  
-@@ -10,25 +12,90 @@ export type SiteSettings = {
+@@ -10,25 +12,107 @@ export type SiteSettings = {
    ctaTitle: string;
    ctaText: string;
    featuredIds: string[];
-+  season: SeasonSettings;
++  season: ThemeEngine;
  };
  
  export const DEFAULT_SETTINGS: SiteSettings = {
@@ -936,12 +1673,14 @@ index 960c3fd..455149b 100644
    ctaTitle: "Não achou seu sabor?",
    ctaText: "Fala com a gente no WhatsApp e a gente encontra o pod perfeito pra você.",
    featuredIds: [],
-+  season: DEFAULT_SEASON,
++  season: migrateEngine(undefined),
  };
  
 +// The Vercel preview can save and exercise scheduling without sharing the live theme.
 +const seasonKey =
 +  import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] === "1" ? "crazy_seasons_preview" : "crazy_seasons";
++
++const engineKey = `${seasonKey}_v2`;
 +
 +function settingsObject(value: Json | undefined): Record<string, Json | undefined> {
 +  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -969,21 +1708,36 @@ index 960c3fd..455149b 100644
 +    const raw = settingsObject(row?.data);
 +    return {
 +      ...DEFAULT_SETTINGS,
-+      ...(raw as Partial<SiteSettings>),
-+      season: readSeason(raw[seasonKey]),
++      ...Object.fromEntries(
++        Object.keys(DEFAULT_SETTINGS)
++          .filter((key) => key in raw && key !== "season")
++          .map((key) => [key, raw[key]]),
++      ),
++      season: readEngine(raw[engineKey], raw[seasonKey]),
 +    };
    },
  });
  
-+export function saveSeason(season: SeasonSettings) {
-+  return saveSettingsPatch({ [seasonKey]: season });
++export function saveSeason(season: ThemeEngine, expected: ThemeEngine) {
++  return saveSettingsPatch({ [engineKey]: season }, (raw) => {
++    if (
++      JSON.stringify(readEngine(raw[engineKey], raw[seasonKey])) !==
++      JSON.stringify(readEngine(expected, undefined))
++    ) {
++      throw new Error("Os temas foram atualizados em outra sessão. Recarregue antes de salvar.");
++    }
++  });
 +}
 +
-+export async function saveSettingsPatch(patch: Record<string, Json | undefined>) {
-+  // Retry a concurrent edit against the newest document so unrelated keys survive.
++export async function saveSettingsPatch(
++  patch: Record<string, Json | undefined>,
++  check?: (current: Record<string, Json | undefined>) => void,
++) {
 +  for (let attempt = 0; attempt < 3; attempt++) {
 +    const row = await readSettings();
-+    const data = { ...settingsObject(row?.data), ...patch };
++    const raw = settingsObject(row?.data);
++    check?.(raw);
++    const data = { ...raw, ...patch };
 +    if (!row) {
 +      const { error } = await supabase.from("site_settings").insert({ id: 1, data });
 +      if (!error) return;
@@ -1008,6 +1762,237 @@ index 960c3fd..455149b 100644
 +}
 +
  export const waBase = (s: SiteSettings) => `https://wa.me/${s.whatsapp.replace(/\D/g, "")}?text=`;
+diff --git a/src/lib/theme-engine.ts b/src/lib/theme-engine.ts
+new file mode 100644
+index 0000000..44b966d
+--- /dev/null
++++ b/src/lib/theme-engine.ts
+@@ -0,0 +1,225 @@
++import { z } from "zod";
++import { DEFAULT_SEASON, readSeason, SNOW_LEVELS, type SeasonSettings } from "./seasons";
++
++export const THEMES = {
++  christmas: {
++    name: "Black Ice",
++    event: "Natal",
++    caption: "Neve, prata e luzes frias.",
++    effects: {
++      snow: "Neve",
++      whatsappHat: "Gorro do WhatsApp",
++      logoHat: "Gorro da logo",
++      lights: "Luzes natalinas",
++      trim: "Cristais e rodapé",
++    },
++  },
++  halloween: {
++    name: "Dark Ritual",
++    event: "Halloween",
++    caption: "Névoa violeta, âmbar e sombras.",
++    effects: {
++      mist: "Névoa",
++      particles: "Partículas",
++      pumpkins: "Abóboras",
++      bats: "Morcegos",
++      lights: "Luz no cabeçalho",
++      logo: "Detalhe na logo",
++      trim: "Bordas iluminadas",
++    },
++  },
++  newyear: {
++    name: "Midnight",
++    event: "Ano-Novo",
++    caption: "Prata, ouro e luzes da meia-noite.",
++    effects: {
++      fireworks: "Fogos",
++      particles: "Partículas metálicas",
++      lights: "Luz no cabeçalho",
++      countdown: "Contagem regressiva",
++      glow: "Brilhos",
++      trim: "Rodapé de celebração",
++      logo: "Detalhe na logo",
++    },
++  },
++  cyber: {
++    name: "Black Volt",
++    event: "Cyber Neon",
++    caption: "Circuitos violeta sobre vidro escuro.",
++    effects: {
++      circuits: "Circuitos",
++      energy: "Linhas de energia",
++      particles: "Partículas digitais",
++      glow: "Brilhos de interface",
++      trim: "Bordas dinâmicas",
++      lights: "Cabeçalho e rodapé",
++    },
++  },
++};
++
++export type ThemeId = keyof typeof THEMES;
++export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
++const themeId = z.enum(["christmas", "halloween", "newyear", "cyber"]);
++const instant = z.string().datetime().nullable();
++const profileSchema = z.object({
++  intensity: z.enum(SNOW_LEVELS),
++  effects: z
++    .object({
++      snow: z.boolean(),
++      whatsappHat: z.boolean(),
++      logoHat: z.boolean(),
++      lights: z.boolean(),
++      trim: z.boolean(),
++      mist: z.boolean(),
++      particles: z.boolean(),
++      pumpkins: z.boolean(),
++      bats: z.boolean(),
++      logo: z.boolean(),
++      fireworks: z.boolean(),
++      countdown: z.boolean(),
++      glow: z.boolean(),
++      circuits: z.boolean(),
++      energy: z.boolean(),
++    })
++    .partial(),
++  scheduled: z.boolean(),
++  start: instant,
++  end: instant,
++  countdown: instant,
++});
++export type ThemeProfile = z.infer<typeof profileSchema>;
++const engineSchema = z.object({
++  version: z.literal(2),
++  manual: themeId.nullable(),
++  pauseSchedule: z.boolean(),
++  profiles: z.object({
++    christmas: profileSchema,
++    halloween: profileSchema,
++    newyear: profileSchema,
++    cyber: profileSchema,
++  }),
++});
++export type ThemeEngine = z.infer<typeof engineSchema>;
++
++export function defaultProfile(id: ThemeId): ThemeProfile {
++  return {
++    intensity: "soft",
++    effects: Object.fromEntries(
++      Object.keys(THEMES[id].effects).map((effect) => [effect, effect !== "countdown"]),
++    ),
++    scheduled: false,
++    start: null,
++    end: null,
++    countdown: null,
++  };
++}
++
++export function migrateEngine(legacy: unknown): ThemeEngine {
++  const { enabled, snow, start, end, ...effects } = readSeason(legacy);
++  return {
++    version: 2,
++    manual: enabled && !start && !end ? "christmas" : null,
++    pauseSchedule: false,
++    profiles: {
++      christmas: {
++        ...defaultProfile("christmas"),
++        intensity: snow,
++        start,
++        end,
++        effects: { snow: true, ...effects },
++        scheduled: enabled && !!(start || end),
++      },
++      halloween: defaultProfile("halloween"),
++      newyear: defaultProfile("newyear"),
++      cyber: defaultProfile("cyber"),
++    },
++  };
++}
++
++export function readEngine(value: unknown, legacy: unknown): ThemeEngine {
++  if (value == null) return migrateEngine(legacy);
++  const parsed = engineSchema.safeParse(value);
++  if (!parsed.success || scheduleError(parsed.data)) return migrateEngine(undefined);
++  for (const id of THEME_IDS) {
++    const effects: Record<string, boolean | undefined> = parsed.data.profiles[id].effects;
++    parsed.data.profiles[id].effects = Object.fromEntries(
++      Object.entries(defaultProfile(id).effects).map(([key, fallback]) => [
++        key,
++        effects[key] ?? fallback,
++      ]),
++    );
++  }
++  return parsed.data;
++}
++
++export function christmasSettings(engine: ThemeEngine): SeasonSettings {
++  const { intensity, effects } = engine.profiles.christmas;
++  return {
++    ...DEFAULT_SEASON,
++    snow: intensity,
++    whatsappHat: !!effects.whatsappHat,
++    logoHat: !!effects.logoHat,
++    lights: !!effects.lights,
++    trim: !!effects.trim,
++  };
++}
++
++const startOf = (p: ThemeProfile) => (p.start ? Date.parse(p.start) : -Infinity);
++const endOf = (p: ThemeProfile) => (p.end ? Date.parse(p.end) : Infinity);
++
++export function scheduleError(engine: ThemeEngine): string | undefined {
++  const entries = THEME_IDS.filter((id) => engine.profiles[id].scheduled);
++  for (const [index, id] of entries.entries()) {
++    const profile = engine.profiles[id];
++    if (!profile.start && !profile.end) return `Informe início ou término para ${THEMES[id].name}.`;
++    if (startOf(profile) >= endOf(profile))
++      return `O término de ${THEMES[id].name} precisa ser posterior ao início.`;
++    const overlap = entries.slice(index + 1).find((other) => {
++      const candidate = engine.profiles[other];
++      return startOf(profile) < endOf(candidate) && startOf(candidate) < endOf(profile);
++    });
++    if (overlap) return `Os períodos de ${THEMES[id].name} e ${THEMES[overlap].name} se sobrepõem.`;
++  }
++  return undefined;
++}
++
++export function activeTheme(engine: ThemeEngine, now: number): ThemeId | null {
++  if (engine.manual) return engine.manual;
++  if (engine.pauseSchedule) return null;
++  return (
++    THEME_IDS.find((id) => {
++      const p = engine.profiles[id];
++      return p.scheduled && now >= startOf(p) && now < endOf(p);
++    }) ?? null
++  );
++}
++
++export const SEASON_ZONE = "America/Sao_Paulo";
++const localFormat = new Intl.DateTimeFormat("sv-SE", {
++  timeZone: SEASON_ZONE,
++  year: "numeric",
++  month: "2-digit",
++  day: "2-digit",
++  hour: "2-digit",
++  minute: "2-digit",
++  hourCycle: "h23",
++});
++
++export function formatThemeDate(instant: string | null) {
++  if (!instant) return "";
++  const parts = Object.fromEntries(
++    localFormat.formatToParts(new Date(instant)).map(({ type, value }) => [type, value]),
++  );
++  return `${parts["year"]}-${parts["month"]}-${parts["day"]}T${parts["hour"]}:${parts["minute"]}`;
++}
++
++export function parseThemeDate(local: string): string | null {
++  if (!local) return null;
++  const target = Date.parse(`${local}:00Z`);
++  if (!Number.isFinite(target)) throw new Error("Data inválida.");
++  const candidates = [-4, -3, -2]
++    .map((offset) => new Date(target - offset * 3_600_000).toISOString())
++    .filter((value) => formatThemeDate(value) === local);
++  if (candidates.length !== 1) throw new Error("Horário inválido ou ambíguo em America/Sao_Paulo.");
++  return candidates[0]!;
++}
 diff --git a/src/routes/index.tsx b/src/routes/index.tsx
 index 8dcc5a6..bc5ecda 100644
 --- a/src/routes/index.tsx
@@ -1034,3 +2019,17 @@ index 8dcc5a6..bc5ecda 100644
        </section>
        <section className="chrome-band">
          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-5 gap-y-4 px-5 py-5 md:grid-cols-4">
+diff --git a/src/server.ts b/src/server.ts
+index fddac26..41931a8 100644
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -49,6 +49,9 @@ function isH3SwallowedErrorBody(body: string): boolean {
+ // twice and renders garbled.
+ export default {
+   async fetch(request: Request, env: unknown, ctx: unknown) {
++    if (request.method === "GET" && new URL(request.url).pathname === "/api/seasons-clock") {
++      return Response.json({ now: Date.now() }, { headers: { "Cache-Control": "no-store" } });
++    }
+     try {
+       const handler = await getServerEntry();
+       const response = await handler.fetch(request, env, ctx);
