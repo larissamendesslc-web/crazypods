@@ -1,23 +1,53 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow" />
-  <meta name="theme-color" content="#0b0b0f" />
-  <meta name="description" content="Crazy Orders: simulação isolada de fluxo de pedidos sem transações reais." />
-  <title>CRAZY ORDERS · Laboratório de pedidos</title>
-  <link rel="stylesheet" href="./demo.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <meta name="theme-color" content="#0b0b0f"/>
+  <meta name="description" content="Demonstração isolada de gestão de pedidos com produtos fictícios."/>
+  <title>Pedido demonstrativo | Crazy Pods</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="./demo.css"/>
 </head>
 <body>
-<div class="shell">
-  <header class="topbar"><div class="brand"><span class="brand-mark">C<span>⚡</span></span><div><b>CRAZY <em>ORDERS</em></b><small>LABORATÓRIO 1.0</small></div></div><div class="top-right"><span class="demo-pill">SIMULAÇÃO · SEM VENDAS REAIS</span><a href="/" class="back">Voltar ao site <span aria-hidden="true">↗</span></a></div></header>
-  <div class="hero"><div><p class="eyebrow">BLACK VOLT · EXPERIÊNCIA DEMONSTRATIVA</p><h1>Do carrinho à <span>gestão.</span></h1><p class="muted">Teste a jornada completa de um pedido fictício. O sistema não envia mensagens, não recebe pagamentos e não acessa o estoque da loja.</p></div><div class="hero-art" aria-hidden="true"><div class="hero-orb">CRZ<span>/</span>01</div></div></div>
-  <nav class="switch" aria-label="Alternar visão"><button class="switch-btn selected" data-tab="client" aria-current="page">◈ &nbsp; Experiência do cliente</button><button class="switch-btn" data-tab="admin">▦ &nbsp; Gestão administrativa <span class="number" id="order-count">0</span></button></nav>
-  <div id="notice" role="status" aria-live="polite" hidden></div>
-  <main id="content"></main>
-  <footer><span>CRAZY ORDERS 1.0 · AMBIENTE ISOLADO</span><span>Catálogo e dados 100% fictícios · sem integração financeira</span></footer>
-</div>
-<script type="module" src="./demo.mjs"></script>
+  <div class="utility-bar"><div class="utility-inner"><span>CRAZY PODS</span><span>ÁREA DE DEMONSTRAÇÃO · SEM VENDAS REAIS</span></div></div>
+  <header class="topbar">
+    <div class="nav-wrap">
+      <a class="brand" href="/" aria-label="Crazy Pods — voltar à página inicial">
+        <img class="brand-logo" src="/__l5e/assets-v1/4899a810-cb7b-4859-a781-ea2a51845235/crazy-pods-logo.png" alt="" width="48" height="48"/>
+        <b>CRAZY PODS</b>
+      </a>
+      <nav class="site-links" aria-label="Navegação principal">
+        <a href="/">Início</a>
+        <a href="/pods">Catálogo</a>
+        <span aria-current="page">Pedidos · Demo</span>
+      </nav>
+      <div class="top-right"><span class="demo-pill">MODO TESTE</span><a class="back" href="/">Voltar à loja <span aria-hidden="true">↗</span></a></div>
+    </div>
+  </header>
+  <div class="shell">
+    <section class="hero" aria-labelledby="page-heading">
+      <div class="hero-copy">
+        <div class="breadcrumb">Início <span>/</span> Pedidos <span>/</span> Demonstração</div>
+        <h1 id="page-heading">Seu pedido<span class="heading-dot">.</span></h1>
+        <p class="muted">Uma experiência de atendimento simples: escolha, confira e compartilhe a referência. A loja responde pelo WhatsApp.</p>
+      </div>
+      <div class="hero-aside"><span class="small-kicker">AMBIENTE ISOLADO</span><span>Dados e produtos fictícios</span></div>
+    </section>
+    <div class="workspace-bar">
+      <nav class="switch" aria-label="Alternar visão da demonstração">
+        <button class="switch-btn selected" type="button" data-tab="client" aria-current="page">Experiência do cliente</button>
+        <button class="switch-btn" type="button" data-tab="admin">Painel administrativo <span class="number" id="order-count">0</span></button>
+      </nav>
+      <span class="workspace-note">Prévia funcional · nenhum pedido real</span>
+    </div>
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+    <main id="content" aria-label="Conteúdo da demonstração"></main>
+    <footer><span>© CRAZY PODS · AMBIENTE DE TESTES</span><span>Dados temporários · nenhuma transação real</span></footer>
+  </div>
+  <script type="module" src="./demo.mjs"></script>
 </body>
 </html>
