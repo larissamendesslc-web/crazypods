@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   calculateDeliveryQuote,
   exampleDeliveryConfig,
+  readDeliveryDemo,
   validateDeliveryPolicy,
 } from "./rates.ts";
 
@@ -80,4 +81,24 @@ test("prices cannot be negative and totals are cent-rounded", () => {
   }, 4, 0.01);
   assert.equal(quote.status, "ok");
   if (quote.status === "ok") assert.equal(quote.total, 1.03);
+});
+
+test("valid saved demo rules are reused independently per location", () => {
+  const custom = {
+    ...exampleDeliveryConfig,
+    quitauna: { ...exampleDeliveryConfig.quitauna, freeAbove: 90 },
+  };
+  assert.equal(readDeliveryDemo(custom).quitauna.freeAbove, 90);
+  assert.equal(readDeliveryDemo(custom).jardimBoaVista.freeAbove,
+    exampleDeliveryConfig.jardimBoaVista.freeAbove);
+});
+
+test("invalid saved settings cannot return incomplete or negative prices", () => {
+  const corrupt = {
+    ...exampleDeliveryConfig,
+    quitauna: { ...exampleDeliveryConfig.quitauna,
+      bands: [{ upToKm: 12, fee: -50 }] },
+  };
+  assert.deepEqual(readDeliveryDemo(corrupt).quitauna, exampleDeliveryConfig.quitauna);
+  assert.deepEqual(readDeliveryDemo({}).jardimBoaVista, exampleDeliveryConfig.jardimBoaVista);
 });
