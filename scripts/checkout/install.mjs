@@ -17,3 +17,5 @@ for (const file of ["src/lib/checkout-quote.server.ts", "src/lib/checkout-mercad
   }
   writeFileSync(file, input.replace('from "./payment-amounts"', 'from "@/lib/checkout-payment-amounts"'));
 }
+
+await import('./sync-cart-prices.mjs');
