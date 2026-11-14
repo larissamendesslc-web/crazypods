@@ -4,7 +4,7 @@
  * Orders MUST be verified/approved/reserved before this adapter is called.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { calculateOrderTotal } from "./payment-amounts";
+import { calculateOrderTotal } from "./payment-amounts.ts";
 
 export type ApprovedOrder = {
   id: string;
@@ -24,7 +24,6 @@ export type PaymentConfig = {
   webhookSecret: string;
   publicOrigin: string;
 };
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // Less strict UUID syntax (standard v4) for idempotent business keys.
 const idPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
