@@ -5,6 +5,7 @@ set -euo pipefail
 unzip -oq 'pod-parlor-of-tomorrow (1).zip'
 git apply --check crazy-seasons.patch
 git apply crazy-seasons.patch
+git apply black-volt.patch
 node scripts/mobile-polish.mjs
 node scripts/floating-cart.mjs
 

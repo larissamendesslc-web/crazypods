@@ -1,0 +1,145 @@
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -43,45 +43,59 @@
+
+ :root {
+   --radius: 0.5rem;
+-  --background: oklch(0.17 0 0);
+-  --foreground: oklch(0.97 0 0);
+-  --card: oklch(0.23 0 0);
+-  --card-foreground: oklch(0.97 0 0);
+-  --popover: oklch(0.16 0.003 300);
+-  --popover-foreground: oklch(0.97 0 0);
+-  --primary: oklch(0.78 0.006 320);
+-  --primary-glow: oklch(0.98 0 0);
+-  --primary-foreground: oklch(0.12 0 0);
+-  --secondary: oklch(0.29 0 0);
+-  --secondary-foreground: oklch(0.97 0 0);
+-  --muted: oklch(0.19 0.003 300);
+-  --muted-foreground: oklch(0.77 0 0);
+-  --accent: oklch(0.9 0 0);
+-  --accent-foreground: oklch(0.12 0 0);
++
++  --black-volt-base: #0B0B0F;
++  --black-volt-graphite: #17171D;
++  --black-volt-surface: #262630;
++  --black-volt-violet: #A78BFA;
++  --black-volt-violet-intense: #7C3AED;
++  --black-volt-white: #F2F2F5;
++  --black-volt-gray: #A1A1AA;
++  --black-volt-border: #353540;
++
++  --background: var(--black-volt-base);
++  --foreground: var(--black-volt-white);
++  --card: var(--black-volt-surface);
++  --card-foreground: var(--foreground);
++  --popover: var(--black-volt-graphite);
++  --popover-foreground: var(--foreground);
++  --primary: var(--black-volt-violet);
++  --primary-glow: var(--black-volt-violet);
++  --primary-foreground: var(--background);
++  --secondary: var(--black-volt-graphite);
++  --secondary-foreground: var(--foreground);
++  --muted: var(--secondary);
++  --muted-foreground: var(--black-volt-gray);
++  --accent: color-mix(in srgb, var(--primary) 58%, var(--foreground));
++  --accent-foreground: var(--background);
+   --whatsapp: oklch(0.68 0.19 150);
+   --destructive: oklch(0.6 0.22 25);
+   --destructive-foreground: oklch(0.99 0 0);
+-  --border: oklch(0.8 0.005 320 / 16%);
+-  --input: oklch(0.8 0.005 320 / 22%);
+-  --ring: oklch(0.85 0 0);
++  --border: var(--black-volt-border);
++  --input: color-mix(in srgb, var(--border), var(--muted-foreground) 53%);
++  --ring: var(--primary);
+   --gradient-primary: linear-gradient(
+     120deg,
+-    oklch(0.62 0.006 320),
+-    var(--primary-glow) 55%,
+-    oklch(0.72 0.006 320)
++    var(--primary),
++    var(--accent) 55%,
++    var(--primary)
++  );
++  --gradient-card: linear-gradient(
++    160deg,
++    color-mix(in oklab, var(--card) 85%, transparent),
++    color-mix(in oklab, var(--secondary) 92%, transparent)
+   );
+-  --gradient-card: linear-gradient(160deg, oklch(0.21 0.004 320 / 85%), oklch(0.13 0 0 / 92%));
+-  --silver: oklch(0.94 0 0);
+-  --silver-foreground: oklch(0.2 0 0);
+-  --silver-muted: oklch(0.48 0 0);
+-  --product-stage: var(--background);
++  --silver: var(--foreground);
++  --silver-foreground: var(--secondary);
++  --silver-muted: var(--muted-foreground);
++  --product-stage: var(--secondary);
+   --pod-shadow: 0 18px 15px oklch(0 0 0 / 55%);
+-  --pod-rim-shadow: 0 0 18px color-mix(in oklab, var(--primary-glow) 12%, transparent);
+-  --commerce: oklch(0.31 0 0);
+-  --commerce-foreground: oklch(0.98 0 0);
+-  --commerce-hover: oklch(0.4 0 0);
++  --pod-rim-shadow: 0 0 18px color-mix(in oklab, var(--foreground) 12%, transparent);
++  --commerce: var(--card);
++  --commerce-foreground: var(--foreground);
++  --commerce-hover: color-mix(in srgb, var(--card), var(--black-volt-violet-intense) 23%);
+   --commerce-shadow: inset 0 1px 0 oklch(1 0 0 / 12%), 0 4px 12px oklch(0 0 0 / 18%);
+-  --shadow-glow: 0 0 40px -8px color-mix(in oklab, var(--primary-glow) 45%, transparent);
++  --shadow-glow: 0 0 40px -8px color-mix(in oklab, var(--primary-glow) 28%, transparent);
+ }
+
+ @layer base {
+@@ -199,7 +213,7 @@
+   box-shadow: var(--commerce-shadow);
+ }
+ .store-header {
+-  background: color-mix(in oklab, var(--card) 94%, transparent);
++  background: color-mix(in oklab, var(--secondary) 94%, transparent);
+   backdrop-filter: blur(18px);
+   color: var(--foreground);
+ }
+@@ -235,17 +249,40 @@
+   bottom: 0;
+   inset-inline: 0.85rem;
+   height: 2px;
+-  background: var(--primary-glow);
++  background: var(--season-hue, var(--primary));
+   transform: scaleX(0);
+   transition: transform 180ms;
+ }
+ .shop-nav-link:hover,
+ .shop-nav-link[aria-current="page"] {
+-  color: var(--foreground);
++  color: var(--season-hue, var(--primary));
+ }
+ .shop-nav-link[aria-current="page"]::after {
+   transform: scaleX(1);
+ }
++
++.store-header [role="search"]:focus-within {
++  background-color: var(--commerce-hover);
++  border-color: var(--ring);
++}
++.store-header [role="search"]:focus-within > svg,
++.store-header [role="search"]:focus-within > input {
++  color: var(--ring);
++}
++:where(div, label).border-input:has(> :is(input, select):focus-visible) {
++  border-color: var(--ring);
++}
++:is(input, select, textarea)::placeholder {
++  color: var(--muted-foreground);
++}
++
++/* Keep the existing WhatsApp foreground and launcher glow. */
++.bg-whatsapp.text-primary-foreground {
++  color: oklch(0.12 0 0);
++}
++.mobile-whatsapp-button.shadow-glow {
++  --shadow-glow: 0 0 40px -8px oklch(0.98 0 0 / 45%);
++}
+ @media (max-width: 767px) {
+   .shop-nav-link {
+     gap: 0.35rem;
