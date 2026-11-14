@@ -29,8 +29,8 @@ No keys are shipped in browser JavaScript.
 
 ## Why live payments are not enabled
 
-- The connected Supabase account does not list the Crazy Pods backend, which appears to be hosted under Lovable Cloud or a different account. This means the *actual* database and RLS setup cannot be audited or migrated from our connected project. Do not guess and do not write to unrelated Supabase projects.
-- The older `scripts/shop-orders.schema.sql` was a **proposal**, not proof that database RPCs/tables exist. The current cart uses the separate Crazy Delivery demonstration flow.
+- The original Lovable project **Pod Parlor Of Tomorrow** exposes a database matching the deployed schema. Read-only inspection confirmed \`products\`, \`inventory\`, \`shop_orders\`, \`site_settings\` and existing order RPCs. No product, order, or schema was modified. **The Vercel server still requires an authorized, securely configured credential for that database** before the server quote endpoint can operate.
+- The database contains order creation/confirmation RPCs. The current public checkout still uses the separate Crazy Delivery demonstration flow; those existing order routines have not been audited for payment/stock reservation.
 - A payment request must use a **server-generated order**, with items eligible for legal sale, prices refreshed from the DB, stock reserved atomically, shipping policy validated on the server, an immutable amount and a buyer ownership token. Browser-only calculations cannot authorize a charge.
 - Existing product inventory does not yet expose verified, atomic checkout reservations for payments. It would risk overselling if activated now.
 - The merchant's Mercado Pago developer integration, merchant approval and webhook signature secret have not been connected or verified.
