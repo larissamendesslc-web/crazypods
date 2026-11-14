@@ -42,7 +42,7 @@
     bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px));
     opacity: 0.93;
   }
-  .mobile-whatsapp-button svg { width: 1.5rem; height: 1.5rem; }
+  .mobile-whatsapp-button > svg:first-child { width: 1.5rem; height: 1.5rem; }
   .mobile-whatsapp-button:focus-visible,
   .mobile-whatsapp-button:hover { opacity: 1; }
 }
