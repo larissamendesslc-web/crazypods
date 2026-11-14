@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { CheckoutCepSearch } from "@/components/checkout-cep-search";
 import { brlFmt, cartCount, cartTotal, type CartItem } from "@/lib/cart";
 import { digits, formatCep, lookupCep, storeNames, type DeliveryStore, type StoreId } from "@/lib/delivery";
-import { calculateDeliveryQuote, type DeliveryStudioConfig, type PaymentDemo } from "@/lib/delivery-pricing";
+import { calculateDeliveryQuote, calculateZoneQuote, type DeliveryStudioConfig, type PaymentDemo } from "@/lib/delivery-pricing";
 import { calculateDemoRoadRoutes, type RoadRoute } from "@/lib/demo-road-routes";
 
 type Props = {
@@ -25,7 +25,8 @@ type Preview = {
   store: StoreId;
   km: number;
   payment: PaymentDemo | "";
-  method: "road" | "manual";
+  method: "road" | "manual" | "zone";
+  zoneName?: string;
   signature: string;
 };
 const storeKeys: StoreId[] = ["quitauna", "jardimBoaVista"];
@@ -70,10 +71,17 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
       ? [{ id, coordinates }] : [];
   });
 
+  const matchedZones = address ? storeKeys.flatMap((id) => {
+    const quote = calculateZoneQuote(deliveryPolicy[id], address.city, address.district, subtotal);
+    return quote ? [{ id, quote }] : [];
+  }) : [];
+  // Prefer explicitly configured local delivery tariffs, without using an external route service.
+  const bestZone = [...matchedZones].sort((a, b) => a.quote.fee - b.quote.fee)[0];
+  const selectedZoneAvailable = unit === null || matchedZones.some(m => m.id === unit);
   const originKey = JSON.stringify(configuredStores);
   const destinationKey = JSON.stringify(address?.coordinates ?? null);
   const canRequestRoads = items.length > 0 && postalCode.length === 8 &&
-    !!address?.coordinates && configuredStores.length > 0;
+    !!address?.coordinates && configuredStores.length > 0 && !(bestZone && selectedZoneAvailable);
   // One query after valid CEP + geocoded address. React Query deduplicates
   // active requests, caches per location, and cancels stale ZIP changes.
   const roadLookup = useQuery({
@@ -94,14 +102,17 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
     const secondOk = calculateDeliveryQuote(deliveryPolicy[second.storeId], second.km, subtotal).status === "ok";
     return Number(secondOk) - Number(firstOk) || first.km - second.km;
   });
-  const recommendedUnit = rankedRoutes[0]?.storeId ?? "quitauna";
+  const recommendedUnit = bestZone?.id ?? rankedRoutes[0]?.storeId ?? "quitauna";
   const selectedUnit = unit ?? recommendedUnit;
+  const selectedZone = matchedZones.find(m => m.id === selectedUnit)?.quote;
+  const usingZone = mode === "road" && !!selectedZone;
   const roadDistance = currentRoutes.find(route => route.storeId === selectedUnit);
-  const usingRoad = mode === "road" && !!roadDistance;
+  const usingRoad = mode === "road" && !usingZone && !!roadDistance;
   const km = mode === "manual" && manualKm.trim() !== "" ? Number(manualKm)
     : usingRoad ? roadDistance.km : Number.NaN;
   const policy = deliveryPolicy[selectedUnit];
-  const quote = Number.isFinite(km) ? calculateDeliveryQuote(policy, km, subtotal) : null;
+  const quote = usingZone ? selectedZone
+    : Number.isFinite(km) ? calculateDeliveryQuote(policy, km, subtotal) : null;
   const availablePayments = policy.paymentDemos;
   const selectedPayment = availablePayments.includes(payment as PaymentDemo) ? payment : "";
   const quoteStatus = !quote
@@ -114,7 +125,8 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
     : quote.status === "ok" ? null : quote.reason;
   const previewSignature = JSON.stringify({
     cep: postalCode, store: selectedUnit, distance: km, subtotal, fee: quote?.status === "ok" ? quote.fee : null,
-    method: usingRoad ? "road" : mode, payment: selectedPayment,
+    method: usingZone ? "zone" : usingRoad ? "road" : mode, payment: selectedPayment,
+    zone: usingZone ? selectedZone?.zone.neighborhood : null,
   });
   const activePreview = preview?.signature === previewSignature ? preview : null;
 
@@ -160,7 +172,8 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
       store: selectedUnit,
       km,
       payment: selectedPayment,
-      method: usingRoad ? "road" : "manual",
+      method: usingZone ? "zone" : usingRoad ? "road" : "manual",
+      zoneName: usingZone ? selectedZone?.zone.neighborhood : undefined,
       signature: previewSignature,
     });
   }
@@ -277,6 +290,9 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
                   </div>
                   {roadLookup.isFetching && <span role="status" className="animate-pulse text-violet-400">Calculando...</span>}
                 </div>
+                {usingZone && (
+                  <p className="mt-2 text-emerald-400">Tarifa de bairro aplicada automaticamente: {selectedZone?.zone.neighborhood}, {selectedZone?.zone.city}.</p>
+                )}
                 {currentRoutes.length > 0 && (
                   <div className="mt-3 space-y-1">
                     {currentRoutes.map(r => (
@@ -290,12 +306,12 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
                     </p>
                   </div>
                 )}
-                {!address?.coordinates && address && (
+                {!usingZone && !address?.coordinates && address && (
                   <p className="mt-2 text-amber-500">
                     Este CEP não trouxe coordenadas; não é possível calcular uma rota confiável.
                   </p>
                 )}
-                {configuredStores.length === 0 && (
+                {!usingZone && configuredStores.length === 0 && (
                   <p className="mt-2 text-amber-500">
                     Cadastre coordenadas das duas unidades em Configurações → Unidades de entrega.
                   </p>
@@ -348,7 +364,7 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
                     <div className="flex items-center justify-between gap-2 border-t border-border pt-2 font-extrabold">
                       <span>Total estimado</span><span className="text-lg tabular-nums">{brlFmt(quote.total)}</span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">Faixa: até {distanceFormat(quote.band.upToKm)} km · {storeNames[selectedUnit]}</p>
+                    <p className="text-[11px] text-muted-foreground">{usingZone ? `Bairro: ${selectedZone?.zone.neighborhood}` : `Faixa: até ${distanceFormat(quote.band?.upToKm ?? 0)} km`} · {storeNames[selectedUnit]}</p>
                   </div>
                 ) : (
                   <p role="status" className="flex items-start gap-2 text-xs text-amber-500">
@@ -389,7 +405,7 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
                 </div>
                 <p className="text-xs text-muted-foreground">Nenhum pedido foi criado e nenhum dado foi enviado à loja.</p>
                 <p>Unidade: <strong>{storeNames[activePreview.store]}</strong></p>
-                <p>Distância: <strong>{distanceFormat(activePreview.km)} km ({activePreview.method === "road" ? "rota por CEP" : "manual"})</strong></p>
+                <p>Referência: <strong>{activePreview.method === "zone" ? `Bairro ${activePreview.zoneName}` : `${distanceFormat(activePreview.km)} km (${activePreview.method === "road" ? "rota por CEP" : "manual"})`}</strong></p>
                 <p>Frete: <strong>{brlFmt(activePreview.shipping)}</strong> · Total: <strong>{brlFmt(activePreview.total)}</strong></p>
                 <p>Pagamento fictício: <strong>{paymentLabels[activePreview.payment as PaymentDemo]}</strong></p>
               </section>
