@@ -9,6 +9,7 @@ import {
   validateDeliveryPolicy,
   type DeliveryBand,
   type DeliveryPolicy,
+  type DeliveryZone,
   type DeliveryStudioConfig,
   type PaymentDemo,
   type StoreKey,
@@ -34,11 +35,13 @@ const freshDraft = (): DeliveryStudioConfig => ({
     ...exampleDeliveryConfig.quitauna,
     bands: exampleDeliveryConfig.quitauna.bands.map((band) => ({ ...band })),
     paymentDemos: [...exampleDeliveryConfig.quitauna.paymentDemos],
+    zones: [],
   },
   jardimBoaVista: {
     ...exampleDeliveryConfig.jardimBoaVista,
     bands: exampleDeliveryConfig.jardimBoaVista.bands.map((band) => ({ ...band })),
     paymentDemos: [...exampleDeliveryConfig.jardimBoaVista.paymentDemos],
+    zones: [],
   },
 });
 
@@ -96,6 +99,16 @@ export function DeliveryPricingStudio() {
     edit({
       bands: policy.bands.map((band, i) => i === index ? { ...band, [key]: value } : band),
     });
+  }
+
+  function changeZone(index: number, key: keyof DeliveryZone, value: string | number) {
+    edit({ zones: (policy.zones ?? []).map((zone, i) =>
+      i === index ? { ...zone, [key]: value } : zone) });
+  }
+
+  function addZone() {
+    if ((policy.zones ?? []).length >= 40) return;
+    edit({ zones: [...(policy.zones ?? []), { city: "Osasco", neighborhood: "", fee: 0 }] });
   }
 
   function addBand() {
@@ -212,6 +225,52 @@ export function DeliveryPricingStudio() {
             <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Adicionar faixa
           </button>
 
+          <div className="mt-5 border-t border-border pt-5">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Tarifas fixas por bairro
+                </h4>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  A consulta automática usa esta taxa quando o CEP coincide exatamente com
+                  cidade e bairro; caso contrário, consulta a rota por quilômetros.
+                </p>
+              </div>
+              <button type="button" className={buttonClass} disabled={(policy.zones ?? []).length >= 40}
+                onClick={addZone}><Plus className="h-3.5 w-3.5" aria-hidden="true" /> Bairro</button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {(policy.zones ?? []).length === 0 && (
+                <p className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+                  Nenhuma tarifa por bairro definida. Serão utilizadas somente as faixas por quilômetros.
+                </p>
+              )}
+              {(policy.zones ?? []).map((zone, i) => (
+                <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 rounded-xl border border-border bg-card p-3">
+                  <label className="block min-w-0 text-xs font-medium text-muted-foreground">
+                    Cidade
+                    <input className={inputClass} value={zone.city} maxLength={80}
+                      onChange={e => changeZone(i, "city", e.target.value)} placeholder="Osasco" />
+                  </label>
+                  <label className="block min-w-0 text-xs font-medium text-muted-foreground">
+                    Bairro
+                    <input className={inputClass} value={zone.neighborhood} maxLength={80}
+                      onChange={e => changeZone(i, "neighborhood", e.target.value)} placeholder="Quitaúna" />
+                  </label>
+                  <button type="button" title="Remover região" aria-label={"Remover região " + (i + 1)}
+                    className="mb-1 rounded-lg p-2 text-muted-foreground hover:bg-secondary"
+                    onClick={() => edit({ zones: (policy.zones ?? []).filter((_, j) => j !== i) })}>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <label className="col-span-3 block text-xs font-medium text-muted-foreground">
+                    Taxa fixa da entrega (R$)
+                    <input type="number" min="0" max="10000" step="0.01" className={inputClass} value={zone.fee}
+                      onChange={e => changeZone(i, "fee", e.target.value === "" ? Number.NaN : Number(e.target.value))} />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="mt-5 border-t border-border pt-4">
             <h4 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Pagamentos ilustrativos</h4>
             <div className="flex flex-wrap gap-x-5 gap-y-3">
@@ -241,7 +300,7 @@ export function DeliveryPricingStudio() {
               <span className="rounded-lg bg-violet-500/10 px-2 py-1 text-[10px] font-bold text-violet-400">SEM ENVIO</span>
             </div>
             <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
-              Insira uma distância hipotética. Ainda não existe consulta de rotas reais nesta etapa.
+              Teste as faixas com uma distância hipotética. No carrinho, o sistema consulta CEP e rota automaticamente e prioriza bairros configurados.
             </p>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs font-medium text-muted-foreground">

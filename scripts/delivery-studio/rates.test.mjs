@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   calculateDeliveryQuote,
+  calculateZoneQuote,
   exampleDeliveryConfig,
   readDeliveryDemo,
   validateDeliveryPolicy,
@@ -101,4 +102,55 @@ test("invalid saved settings cannot return incomplete or negative prices", () =>
   };
   assert.deepEqual(readDeliveryDemo(corrupt).quitauna, exampleDeliveryConfig.quitauna);
   assert.deepEqual(readDeliveryDemo({}).jardimBoaVista, exampleDeliveryConfig.jardimBoaVista);
+});
+
+test("CEP neighborhood tariff takes accents and case into account", () => {
+  const policy = {
+    ...exampleDeliveryConfig.quitauna,
+    zones: [{ city: "Osasco", neighborhood: "Quitaúna", fee: 12.4 }],
+  };
+  const quote = calculateZoneQuote(policy, "OSASCO", "Quitauna", 80);
+  assert.equal(quote?.fee, 12.4);
+  assert.equal(quote?.total, 92.4);
+});
+
+test("no neighborhood match never guesses a fee", () => {
+  const policy = {
+    ...exampleDeliveryConfig.quitauna,
+    zones: [{ city: "Osasco", neighborhood: "Centro", fee: 5 }],
+  };
+  assert.equal(calculateZoneQuote(policy, "Barueri", "Centro", 25), null);
+  assert.equal(calculateZoneQuote(policy, "Osasco", "Vila Yara", 25), null);
+});
+
+test("neighborhood fixed tariff honors the exact free delivery threshold", () => {
+  const policy = {
+    ...exampleDeliveryConfig.quitauna,
+    freeAbove: 100,
+    zones: [{ city: "Osasco", neighborhood: "Centro", fee: 7 }],
+  };
+  assert.equal(calculateZoneQuote(policy, "Osasco", "Centro", 99.99)?.fee, 7);
+  assert.equal(calculateZoneQuote(policy, "Osasco", "Centro", 100)?.fee, 0);
+});
+
+test("a duplicate or invalid neighborhood configuration fails validation", () => {
+  const sample = {
+    ...exampleDeliveryConfig.quitauna,
+    zones: [{ city: "Osasco", neighborhood: "Quitaúna", fee: 4 },
+      { city: "osasco", neighborhood: "quitauna", fee: 8 }],
+  };
+  assert.ok(validateDeliveryPolicy(sample));
+  assert.equal(calculateZoneQuote(sample, "Osasco", "Quitaúna", 50), null);
+});
+
+test("older price policy remains compatible with empty neighborhood tariff list", () => {
+  const before = {
+    ...exampleDeliveryConfig.quitauna,
+  };
+  delete before.zones;
+  const parsed = readDeliveryDemo({
+    ...exampleDeliveryConfig,
+    quitauna: before,
+  });
+  assert.deepEqual(parsed.quitauna.zones, []);
 });

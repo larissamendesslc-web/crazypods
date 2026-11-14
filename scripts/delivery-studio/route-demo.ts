@@ -1,5 +1,5 @@
 /**
- * Public OSRM demonstration endpoint is used on explicit test action only.
+ * Public OSRM demonstration endpoint is queried automatically after a valid CEP with coordinates in test mode only.
  * It is NOT suitable for a real checkout, is best-effort, and must be
  * replaced with a contracted routing service before commercial operation.
  * Only approximate CEP coordinates are sent (no names or full addresses).

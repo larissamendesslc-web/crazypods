@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - "feature/crazy-delivery-studio-preview"
+      - "feature/auto-freight-ready-2026"
     paths:
       - "scripts/delivery-studio/**"
       - "scripts/prepare-build.sh"
