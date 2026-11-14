@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0b0b0f" />
+  <meta name="description" content="Crazy Orders: simulação isolada de fluxo de pedidos sem transações reais." />
+  <title>CRAZY ORDERS · Laboratório de pedidos</title>
+  <link rel="stylesheet" href="./demo.css" />
+</head>
+<body>
+<div class="shell">
+  <header class="topbar"><div class="brand"><span class="brand-mark">C<span>⚡</span></span><div><b>CRAZY <em>ORDERS</em></b><small>LABORATÓRIO 1.0</small></div></div><div class="top-right"><span class="demo-pill">SIMULAÇÃO · SEM VENDAS REAIS</span><a href="/" class="back">Voltar ao site <span aria-hidden="true">↗</span></a></div></header>
+  <div class="hero"><div><p class="eyebrow">BLACK VOLT · EXPERIÊNCIA DEMONSTRATIVA</p><h1>Do carrinho à <span>gestão.</span></h1><p class="muted">Teste a jornada completa de um pedido fictício. O sistema não envia mensagens, não recebe pagamentos e não acessa o estoque da loja.</p></div><div class="hero-art" aria-hidden="true"><div class="hero-orb">CRZ<span>/</span>01</div></div></div>
+  <nav class="switch" aria-label="Alternar visão"><button class="switch-btn selected" data-tab="client" aria-current="page">◈ &nbsp; Experiência do cliente</button><button class="switch-btn" data-tab="admin">▦ &nbsp; Gestão administrativa <span class="number" id="order-count">0</span></button></nav>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+  <main id="content"></main>
+  <footer><span>CRAZY ORDERS 1.0 · AMBIENTE ISOLADO</span><span>Catálogo e dados 100% fictícios · sem integração financeira</span></footer>
+</div>
+<script type="module" src="./demo.mjs"></script>
+</body>
+</html>

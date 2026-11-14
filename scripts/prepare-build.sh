@@ -9,6 +9,10 @@ git apply black-volt.patch
 node scripts/mobile-polish.mjs
 node scripts/floating-cart.mjs
 
+# CRAZY ORDERS isolated fake-goods demo: never connects to real shop transactions.
+mkdir -p public/crazy-orders-demo
+cp overrides/crazy-orders-demo/{index.html,demo.css,demo.mjs,logic.mjs} public/crazy-orders-demo/
+
 logo_dir="public/__l5e/assets-v1/4899a810-cb7b-4859-a781-ea2a51845235"
 mkdir -p "$logo_dir"
 cp public/favicon.png "$logo_dir/crazy-pods-logo.png"

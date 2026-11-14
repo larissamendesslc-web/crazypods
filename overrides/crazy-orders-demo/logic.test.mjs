@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {freshState,createOrder,quoteShipping,acceptQuote,simulatePayment,confirmOrder,cancelOrder,totalRevenue,findOrder,validateCart,money} from './logic.mjs';
+function started(){return createOrder(freshState(),{notebook:2,mug:1});}
+function paid(){let s=started();s=quoteShipping(s,'DEMO-00001',1200);s=acceptQuote(s,'DEMO-00001');return simulatePayment(s,'DEMO-00001');}
+test('cart requires items',()=>assert.throws(()=>validateCart({}),/Selecione/));
+test('unknown catalog items rejected',()=>assert.throws(()=>validateCart({vape:1}),/não encontrado/));
+test('fractional quantity rejected',()=>assert.throws(()=>validateCart({notebook:1.5}),/Quantidade/));
+test('negative quantity rejected',()=>assert.throws(()=>validateCart({notebook:-1}),/Quantidade/));
+test('cart snapshot cents accurate',()=>assert.equal(started().orders[0].subtotalCents,10970));
+test('order starts pending frete',()=>assert.equal(started().orders[0].status,'waiting_shipping'));
+test('stock untouched when order created',()=>assert.equal(started().stock.notebook,12));
+test('cannot create oversized stock order',()=>assert.throws(()=>createOrder(freshState(),{mug:9}),/Estoque/));
+test('negative shipping blocked',()=>assert.throws(()=>quoteShipping(started(),'DEMO-00001',-1),/Frete/));
+test('fractional cents shipping blocked',()=>assert.throws(()=>quoteShipping(started(),'DEMO-00001',1.2),/Frete/));
+test('shipping total is cents integer',()=>assert.equal(quoteShipping(started(),'DEMO-00001',1200).orders[0].totalCents,12170));
+test('cannot accept without quote',()=>assert.throws(()=>acceptQuote(started(),'DEMO-00001'),/frete/));
+test('quote acceptance locks version',()=>{const s=acceptQuote(quoteShipping(started(),'DEMO-00001',900),'DEMO-00001');assert.equal(s.orders[0].acceptedVersion,1);});
+test('requoting invalidates acceptance',()=>{let s=acceptQuote(quoteShipping(started(),'DEMO-00001',100),'DEMO-00001');s=quoteShipping(s,'DEMO-00001',200);assert.equal(s.orders[0].acceptedVersion,null);});
+test('payment requires accepted quote',()=>assert.throws(()=>simulatePayment(started(),'DEMO-00001'),/Cotação/));
+test('confirmation requires simulated payment',()=>assert.throws(()=>confirmOrder(started(),'DEMO-00001'),/Pagamento/));
+test('confirmation decrements stock once',()=>{const s=confirmOrder(paid(),'DEMO-00001');assert.equal(s.stock.notebook,10);assert.equal(s.stock.mug,7);});
+test('confirmation books revenue',()=>assert.equal(totalRevenue(confirmOrder(paid(),'DEMO-00001')),12170));
+test('confirmation is idempotent',()=>{const s=confirmOrder(paid(),'DEMO-00001');assert.deepEqual(confirmOrder(s,'DEMO-00001'),s);});
+test('duplicate confirmation cannot duplicate ledger',()=>assert.equal(confirmOrder(confirmOrder(paid(),'DEMO-00001'),'DEMO-00001').ledger.length,1));
+test('cancellation of confirmed order restocks',()=>{const s=cancelOrder(confirmOrder(paid(),'DEMO-00001'),'DEMO-00001');assert.equal(s.stock.notebook,12);assert.equal(s.stock.mug,8);});
+test('cancellation compensates revenue',()=>assert.equal(totalRevenue(cancelOrder(confirmOrder(paid(),'DEMO-00001'),'DEMO-00001')),0));
+test('repeat cancellation idempotent',()=>{const s=cancelOrder(confirmOrder(paid(),'DEMO-00001'),'DEMO-00001');assert.deepEqual(cancelOrder(s,'DEMO-00001'),s);});
+test('cancelled orders reject quote',()=>{const s=cancelOrder(started(),'DEMO-00001');assert.throws(()=>quoteShipping(s,'DEMO-00001',200),/não aceita/);});
+test('invalid IDs rejected',()=>assert.throws(()=>findOrder(started(),'DEMO-99999'),/não encontrado/));
+test('currency format BRL',()=>assert.match(money(1299),/12,99/));
