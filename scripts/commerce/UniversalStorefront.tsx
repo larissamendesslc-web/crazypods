@@ -70,7 +70,7 @@ function CatalogView({ catalog }: { catalog: CommerceCatalog }) {
   const { data: settings } = useQuery(settingsQuery);
   const [category, setCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
-  const [store, setStore] = useState<StoreId>("quitauna");
+  const [manualStore, setManualStore] = useState<StoreId | null>(null);
   const [cart, setCart] = useState<ShopCartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [openCart, setOpenCart] = useState(false);
@@ -102,8 +102,10 @@ function CatalogView({ catalog }: { catalog: CommerceCatalog }) {
     (category === "all" || p.categoryId === category) &&
     (!query.trim() || [p.name, p.description, p.sku].some(v => v.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR").trim()))),
   );
-  const cartResolution = resolveCart(catalog, cart, store);
-  const subtotalCents = cartResolution.ok ? cartResolution.subtotalCents : 0;
+  const stockEligible = units.filter(id => resolveCart(catalog, cart, id).ok);
+  const provisionalStore = stockEligible[0] ?? "quitauna";
+  const provisionalResolution = resolveCart(catalog, cart, provisionalStore);
+  const baseSubtotal = provisionalResolution.ok ? provisionalResolution.subtotalCents : 0;
   const postalCode = digits(cep);
   const postalLookup = useQuery({
     queryKey: ["commerce-postal", postalCode],
@@ -113,27 +115,43 @@ function CatalogView({ catalog }: { catalog: CommerceCatalog }) {
     retry: false,
   });
   const postal = postalLookup.data && digits(postalLookup.data.cep) === postalCode ? postalLookup.data : null;
-  const zone = settings && postal
-    ? calculateZoneQuote(settings.deliveryPricingDemo[store], postal.city, postal.district, subtotalCents / 100)
-    : null;
+  const zoneMatches = settings && postal ? stockEligible.flatMap(id => {
+    const value = calculateZoneQuote(
+      settings.deliveryPricingDemo[id], postal.city, postal.district, baseSubtotal / 100,
+    );
+    return value ? [{ storeId: id, quote: value }] : [];
+  }).sort((a,b) => a.quote.fee - b.quote.fee) : [];
   const origins = units.flatMap(id => {
     const point = settings?.deliveryStores[id]?.coordinates;
     return point ? [{ id, coordinates: point }] : [];
   });
+  const preferredZone = manualStore ? zoneMatches.find(z => z.storeId === manualStore) : zoneMatches[0];
   const roadQuery = useQuery({
     queryKey: ["commerce-roads", postalCode, JSON.stringify(origins), JSON.stringify(postal?.coordinates)],
-    enabled: cartResolution.ok && !!postal?.coordinates && origins.length > 0 && !zone,
+    enabled: stockEligible.length > 0 && !!postal?.coordinates && origins.length > 0 && !preferredZone,
     queryFn: ({ signal }) => calculateDemoRoadRoutes(origins, postal!.coordinates!, signal),
     staleTime: 600_000,
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const eligibleRoads = settings ? (roadQuery.data ?? []).filter(route => {
+    if (!stockEligible.includes(route.storeId)) return false;
+    return calculateDeliveryQuote(
+      settings.deliveryPricingDemo[route.storeId], route.km, baseSubtotal / 100,
+    ).status === "ok";
+  }).sort((a,b) => a.km - b.km) : [];
+  const store = manualStore ?? preferredZone?.storeId ?? eligibleRoads[0]?.storeId ?? provisionalStore;
+  const cartResolution = resolveCart(catalog, cart, store);
+  const subtotalCents = cartResolution.ok ? cartResolution.subtotalCents : 0;
+  const zone = settings && postal
+    ? calculateZoneQuote(settings.deliveryPricingDemo[store], postal.city, postal.district, subtotalCents / 100)
+    : null;
   const matchedRoad = roadQuery.data?.find(r => r.storeId === store);
   const roadQuote = matchedRoad && settings
     ? calculateDeliveryQuote(settings.deliveryPricingDemo[store], matchedRoad.km, subtotalCents / 100)
     : null;
-  const quote = zone ?? (roadQuote?.status === "ok" ? roadQuote : null);
-  const totalCents = quote && cartResolution.ok ? cartResolution.subtotalCents + Math.round(quote.fee * 100) : null;
+  const quote = cartResolution.ok ? zone ?? (roadQuote?.status === "ok" ? roadQuote : null) : null;
+  const totalCents = quote && cartResolution.ok ? subtotalCents + Math.round(quote.fee * 100) : null;
   const cartCount = cart.reduce((total, line) => total + line.quantity, 0);
 
   function add(productId: string, variantId: string | null) {
@@ -225,9 +243,16 @@ function CatalogView({ catalog }: { catalog: CommerceCatalog }) {
                 </button>
               </div>
               {cart.length === 0 ? <p className="mt-5 text-sm text-muted-foreground">Adicione um produto para começar.</p>
-                : !cartResolution.ok ? <p role="alert" className="mt-4 text-sm text-amber-500">
-                  {cartResolution.reason}. Confira a unidade e a disponibilidade dos itens.
-                </p> : (
+                : !cartResolution.ok ? (
+                  <div role="alert" className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+                    <p className="text-amber-500">
+                      {cartResolution.reason}. Confira a unidade e a disponibilidade dos itens.
+                    </p>
+                    <Button variant="outline" className="mt-3 w-full" type="button" onClick={() => setCart([])}>
+                      Limpar carrinho
+                    </Button>
+                  </div>
+                ) : (
                   <div className="mt-4 space-y-3">
                     {cartResolution.lines.map((line, index) => (
                       <div key={line.key} className="rounded-xl border border-border bg-background/60 p-3">
@@ -249,7 +274,7 @@ function CatalogView({ catalog }: { catalog: CommerceCatalog }) {
                 <label className="block text-xs font-semibold text-muted-foreground">
                   Unidade de atendimento
                   <select value={store} className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
-                    onChange={e => setStore(e.target.value as StoreId)}>
+                    onChange={e => setManualStore(e.target.value as StoreId)}>
                     {units.map(id => <option key={id} value={id}>{storeNames[id]} · Osasco</option>)}
                   </select>
                 </label>
