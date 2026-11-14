@@ -5,6 +5,7 @@ set -euo pipefail
 unzip -oq 'pod-parlor-of-tomorrow (1).zip'
 git apply --check crazy-seasons.patch
 git apply crazy-seasons.patch
+node scripts/mobile-polish.mjs
 
 logo_dir="public/__l5e/assets-v1/4899a810-cb7b-4859-a781-ea2a51845235"
 mkdir -p "$logo_dir"
