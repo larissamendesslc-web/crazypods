@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { commerceBackendReady, commerceDb, json } from "@/lib/commerce-db.server";
+import { commerceBackendReady, commerceDb, json, limitedJson } from "@/lib/commerce-db.server";
 import {
   fetchMercadoPagoPayment,
   verifyMercadoPagoWebhook,
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/api/commerce/mp-webhook")({
         let paymentId = url.searchParams.get("data.id");
         if (!paymentId) {
           try {
-            const data: unknown = await request.json();
+            const data: unknown = await limitedJson(request);
             const obj = data && typeof data === "object" ? data as {
               data?: { id?: string | number }
             } : {};
