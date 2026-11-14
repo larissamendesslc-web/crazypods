@@ -315,7 +315,7 @@ index 0000000..64f25fb
 +}
 diff --git a/src/components/cart-checkout.tsx b/src/components/cart-checkout.tsx
 new file mode 100644
-index 0000000..5d623e5
+index 0000000..f1c1657
 --- /dev/null
 +++ b/src/components/cart-checkout.tsx
 @@ -0,0 +1,222 @@
@@ -353,7 +353,7 @@ index 0000000..5d623e5
 +  const request = useRef<{ fingerprint: string; id: string } | null>(null);
 +
 +  function whatsappUrl(order: string) {
-+    return whatsappBase + encodeURIComponent(orderMessage(order, window.location.origin));
++    return whatsappBase + encodeURIComponent(orderMessage(order));
 +  }
 +
 +  async function checkout(event: FormEvent<HTMLFormElement>) {
@@ -640,10 +640,10 @@ index 1ef8a45..cba7556 100644
        </div>
 diff --git a/src/lib/orders.ts b/src/lib/orders.ts
 new file mode 100644
-index 0000000..8d2e2fc
+index 0000000..a946e93
 --- /dev/null
 +++ b/src/lib/orders.ts
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,81 @@
 +import type { SupabaseClient } from "@supabase/supabase-js";
 +import { z } from "zod";
 +import { supabase } from "@/integrations/supabase/client";
@@ -722,10 +722,8 @@ index 0000000..8d2e2fc
 +
 +export const ordersClient = supabase as unknown as SupabaseClient<OrdersDatabase>;
 +
-+export function orderMessage(code: string, origin: string) {
-+  const url = new URL("/admin", origin);
-+  url.searchParams.set("pedido", code);
-+  return `Olá, este é meu pedido: ${code}\n${url.href}`;
++export function orderMessage(code: string) {
++  return `OLÁ, JÁ FIZ MEU PEDIDO, CÓDIGO: ${code}`;
 +}
 diff --git a/src/routes/_authenticated/admin.tsx b/src/routes/_authenticated/admin.tsx
 index f7f9fdc..e6cf646 100644
