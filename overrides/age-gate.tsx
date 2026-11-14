@@ -21,7 +21,11 @@ export function AgeGate({ children }: { children: ReactNode }) {
   const { data, isError } = useQuery(settingsQuery);
   const engine = data?.season ?? DEFAULT_SETTINGS.season;
   const now = useSeasonClock(engine, !!data && !isError);
-  const christmas = !!data && !isError && activeTheme(engine, now ?? Number.NaN) === "christmas";
+  // URL-only preview does not change the saved seasonal theme or production appearance.
+  const demo = import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] === "1" &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("ageTheme") === "christmas";
+  const christmas = demo || (!!data && !isError && activeTheme(engine, now ?? Number.NaN) === "christmas");
 
   useEffect(() => {
     try {
