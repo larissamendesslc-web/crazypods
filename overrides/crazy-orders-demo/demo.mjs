@@ -61,24 +61,24 @@ function client(){
  const shared=incomingOrder();if(location.hash.startsWith('#pedido='))return shared?sharedOrderScreen(shared):`<section class="panel"><h2>Referência inválida</h2><p class="sub">Este link de demonstração está incompleto ou não pode ser lido.</p>${xbtn('clear-share','← Voltar','button secondary')}</section>`;
  if(activeId){
   const o=findOrder(state,activeId);
-  return `<div class="grid"><section class="panel">${head('Pedido de teste criado!','O próximo passo é enviar a referência à loja')}
+  return `<div class="grid"><section class="panel">${head('Pedido criado','Envie a referência ao atendimento pelo WhatsApp')}
   <div class="step"><div class="step-n">✓</div><div><b class="mono">${escapeText(o.id)}</b><p class="sub">Este é um pedido fictício. Compartilhe o link demonstrativo para conferir o resumo dos itens em outro aparelho.</p></div></div>
   <div class="divider"></div>${itemLines(o)}
   <div class="summary-line total"><span>Subtotal ilustrativo</span><strong>${money(o.subtotalCents)}</strong></div>
-  <div class="actions">${xbtn('whatsapp','Enviar referência pelo WhatsApp','button full')}${xbtn('copy-link','Copiar link da demonstração','button secondary full')}</div>
+  <div class="actions">${xbtn('whatsapp','Compartilhar no WhatsApp','button full')}${xbtn('copy-link','Copiar link do pedido de teste','button secondary full')}</div>
   <div class="hint">A partir daqui, a conversa e qualquer confirmação ficam no WhatsApp. O cliente não acompanha frete, pagamento ou status pelo site. Este link só contém produtos fictícios e não transmite dados pessoais.</div>
-  </section><aside class="panel">${head('Próximo passo','Atendimento fora do site')}
+  </section><aside class="panel">${head('Próximo passo','A confirmação será enviada pelo WhatsApp')}
   <ol class="timeline"><li>Cliente envia o link demonstrativo à loja</li><li>Loja responde pelo WhatsApp</li><li>Loja informa o frete e a confirmação na conversa</li><li>Responsável registra o resultado no painel de testes</li></ol>
   <div class="divider"></div>${xbtn('new','← Criar outro pedido fictício','button secondary full')}
   <p class="sub">No ambiente de demonstração, a gestão permanece neste navegador. Para trabalhar entre aparelhos será preciso um banco de testes.</p></aside></div>`;
  }
  const chosen=CATALOG.filter(p=>cart[p.id]>0);const subtotal=chosen.reduce((sum,p)=>sum+p.priceCents*cart[p.id],0);
- return `<div class="grid"><section class="panel">${head(checkout?'Dados de demonstração':'Catálogo de testes',checkout?'Informações fictícias — não inclua dados reais':'Produtos sintéticos independentes do catálogo da loja',`<span class="tag">${checkout?'ETAPA 02':'ETAPA 01'}</span>`)}
- ${checkout?contactFields():`<div class="catalog-list">${CATALOG.map(p=>`<article class="product"><div class="product-emoji" aria-hidden="true">${p.emoji}</div><div class="product-info"><b>${p.name}</b><p class="sub">${p.category}</p><span class="price">${money(p.priceCents)}</span></div><div class="qty"><button data-action="minus" data-item="${p.id}" aria-label="Diminuir ${p.name}" ${cart[p.id]<1?'disabled':''}>−</button><b>${cart[p.id]}</b><button data-action="plus" data-item="${p.id}" aria-label="Aumentar ${p.name}" ${cart[p.id]>=state.stock[p.id]?'disabled':''}>+</button></div></article>`).join('')}</div><div class="hint">Este catálogo é totalmente fictício e não está ligado aos produtos da Crazy Pods.</div>`}
- </section><aside class="panel">${head('Resumo do carrinho','Quantidade, subtotal e frete manual')}
+ return `<div class="grid"><section class="panel">${head(checkout?'Dados do pedido':'Escolha os itens',checkout?'Use apenas informações fictícias nesta prévia':'Produtos de exemplo, independentes do catálogo da loja',`<span class="tag">${checkout?'ETAPA 02':'ETAPA 01'}</span>`)}
+ ${checkout?contactFields():`<div class="catalog-list">${CATALOG.map(p=>`<article class="product"><div class="product-emoji" aria-hidden="true"><span class="sample-visual sample-${p.id}"></span></div><div class="product-info"><b>${p.name}</b><p class="sub">${p.category}</p><span class="price">${money(p.priceCents)}</span></div><div class="qty"><button data-action="minus" data-item="${p.id}" aria-label="Diminuir ${p.name}" ${cart[p.id]<1?'disabled':''}>−</button><b>${cart[p.id]}</b><button data-action="plus" data-item="${p.id}" aria-label="Aumentar ${p.name}" ${cart[p.id]>=state.stock[p.id]?'disabled':''}>+</button></div></article>`).join('')}</div><div class="hint">Produtos exclusivamente demonstrativos. Nenhum item pertence ao catálogo real.</div>`}
+ </section><aside class="panel">${head('Resumo do pedido','Confira os itens antes de continuar')}
  ${chosen.length?chosen.map(p=>`<div class="summary-line"><span>${p.name} × ${cart[p.id]}</span><b>${money(p.priceCents*cart[p.id])}</b></div>`).join(''):'<div class="empty">Nenhum item selecionado.</div>'}
  <div class="summary-line"><span>Frete</span><b>A calcular</b></div><div class="summary-line total"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
- ${checkout?xbtn('back','← Voltar ao carrinho','button secondary full'):xbtn('checkout','Continuar pedido de teste →','button full',chosen.length===0)}
+ ${checkout?xbtn('back','← Voltar ao carrinho','button secondary full'):xbtn('checkout','Continuar pedido','button full',chosen.length===0)}
  <div class="hint">O pedido fictício poderá gerar um link de resumo para compartilhar. Não há cobrança nem registro em servidor.</div></aside></div>`;
 }
 function admin(){
