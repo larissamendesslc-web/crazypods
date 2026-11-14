@@ -51,7 +51,7 @@
 -  --input: oklch(0.8 0.005 320 / 22%);
 -  --ring: oklch(0.85 0 0);
 +  --border: var(--black-volt-border);
-+  --input: color-mix(in srgb, var(--border), var(--muted-foreground) 53%);
++  --input: color-mix(in srgb, var(--border), var(--muted-foreground) 58%);
 +  --ring: var(--primary);
    --gradient-primary: linear-gradient(
      120deg,
