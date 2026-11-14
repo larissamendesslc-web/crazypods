@@ -1,91 +1,11 @@
 diff --git a/src/routes/index.tsx b/src/routes/index.tsx
-index bc5ecda..56e3ee5 100644
+index bc5ecda..14ca9ba 100644
 --- a/src/routes/index.tsx
 +++ b/src/routes/index.tsx
-@@ -13,7 +13,6 @@ import {
-   Play,
- } from "lucide-react";
- import { useQuery } from "@tanstack/react-query";
--import heroBannerImg from "@/assets/dinner-lady-luma-40k-prata.jpg";
- import { productsQuery, type Product } from "@/lib/products";
- import {
-   ShopShell,
-@@ -77,34 +76,73 @@ function Home() {
-     .map((p, i) => ({ p, i }))
-     .filter(({ p }) => p.launch && !p.soldout)
-     .slice(0, 4);
--  const openHero = () => {
--    const i = settings.heroProductId
--      ? catalog.findIndex((p) => p.id === settings.heroProductId)
--      : catalog.findIndex((p) => /luma 40k/i.test(p.name));
--    const p = catalog[i];
--    if (p) openPod(p, i);
--  };
-+  const heroIndex = settings.heroProductId
-+    ? catalog.findIndex((p) => p.id === settings.heroProductId)
-+    : catalog.findIndex((p) => /luma 40k/i.test(p.name));
-+  const heroProduct = catalog[heroIndex];
-+
-   return (
-     <>
--      <section className="black-ice-hero relative overflow-hidden">
--        <h1 className="sr-only">Crazy Pods — escolha seu pod</h1>
--        <Button
--          variant="ghost"
--          onClick={openHero}
--          aria-label="Ver lançamento em destaque"
--          className="block h-auto w-full rounded-none p-0 hover:bg-transparent"
--        >
--          <img
--            src={settings.heroImage ?? heroBannerImg}
--            alt="Lançamento em destaque na Crazy Pods"
--            width={1672}
--            height={941}
--            fetchPriority="high"
--            className="mx-auto block h-auto max-h-[680px] w-full object-contain"
--          />
--        </Button>
-+      <section className="black-ice-hero volt-hero">
-+        <div className="volt-hero-inner mx-auto max-w-7xl">
-+          <div className="volt-hero-copy">
-+            <p className="volt-hero-kicker">Entrega em Osasco e região</p>
-+            <h1 className="font-display font-bold">
-+              Encontre seu
-+              <br className="hidden lg:inline" /> próximo pod
-+            </h1>
-+            <p className="volt-hero-description">Explore os modelos e sabores disponíveis.</p>
-+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-+              <Button asChild variant="commerce" className="h-12 rounded-xl px-5 text-sm font-bold">
-+                <Link to="/pods">
-+                  Ver catálogo <ArrowRight aria-hidden="true" />
-+                </Link>
-+              </Button>
-+              {heroProduct && (
-+                <Button
-+                  variant="link"
-+                  className="h-11 px-0 text-foreground"
-+                  onClick={() => openPod(heroProduct, heroIndex)}
-+                >
-+                  Ver destaque <ArrowUpRight aria-hidden="true" />
-+                </Button>
-+              )}
-+            </div>
-+          </div>
-+          <figure className={`volt-hero-art${settings.heroImage ? " volt-hero-art-custom" : ""}`}>
-+            <img
-+              src={settings.heroImage ?? heroProduct?.image ?? "/pods/cut/dinner-lady-luma-40k.png"}
-+              alt={heroProduct?.name ?? "Dinner Lady Luma 40K"}
-+              width={settings.heroImage ? 1672 : 700}
-+              height={settings.heroImage ? 941 : 700}
-+              fetchPriority="high"
-+            />
-+            {!settings.heroImage && (
-+              <figcaption>{heroProduct?.name ?? "Dinner Lady Luma 40K"}</figcaption>
-+            )}
-+          </figure>
-+        </div>
-         <ChristmasCrystals />
+@@ -127,11 +127,29 @@ function Home() {
+         </div>
        </section>
+ 
 +      {launches.length > 0 && (
 +        <section className="volt-launches store-section">
 +          <div className="mx-auto max-w-7xl px-5">
@@ -105,10 +25,7 @@ index bc5ecda..56e3ee5 100644
 +        </section>
 +      )}
 +
-       <section className="chrome-band">
-         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-5 gap-y-4 px-5 py-5 md:grid-cols-4">
-           {[
-@@ -131,7 +169,6 @@ function Home() {
+       <section className="store-section chrome-band">
          <div className="mx-auto max-w-7xl px-5">
            <div className="flex flex-wrap items-end justify-between gap-4">
              <div>
@@ -116,7 +33,7 @@ index bc5ecda..56e3ee5 100644
                <h2 className="store-heading font-display font-bold">Escolha por marca</h2>
              </div>
              <Button variant="secondary" asChild>
-@@ -140,7 +177,7 @@ function Home() {
+@@ -140,7 +158,7 @@ function Home() {
                </Link>
              </Button>
            </div>
@@ -125,7 +42,7 @@ index bc5ecda..56e3ee5 100644
              {brandCats.map((c) => (
                <Button
                  key={c.id}
-@@ -149,13 +186,13 @@ function Home() {
+@@ -149,13 +167,13 @@ function Home() {
                  className="group h-auto whitespace-normal rounded-lg border border-border bg-background p-4 text-foreground hover:bg-secondary hover:text-foreground"
                >
                  <Link to="/categoria/$cat" params={{ cat: c.id }} className="flex flex-col">
@@ -141,7 +58,7 @@ index bc5ecda..56e3ee5 100644
                        />
                      ) : (
                        <span className="font-display text-xl font-bold">+ MARCAS</span>
-@@ -178,8 +215,7 @@ function Home() {
+@@ -178,8 +196,7 @@ function Home() {
          <div className="mx-auto max-w-7xl px-5">
            <div className="flex flex-wrap items-end justify-between gap-4">
              <div>
@@ -151,7 +68,7 @@ index bc5ecda..56e3ee5 100644
              </div>
              <p className="text-sm text-muted-foreground">Novidades, puffs ou recarregáveis</p>
            </div>
-@@ -272,26 +308,6 @@ function Home() {
+@@ -272,26 +289,6 @@ function Home() {
          </section>
        )}
  
@@ -510,86 +427,15 @@ index f1c1657..e18dad2 100644
        )}
      </form>
 diff --git a/src/styles.css b/src/styles.css
-index 7e28532..2a951ab 100644
+index 7e28532..9814550 100644
 --- a/src/styles.css
 +++ b/src/styles.css
-@@ -462,3 +462,133 @@ button:focus-visible {
+@@ -462,3 +462,53 @@ button:focus-visible {
    .floating-cart-launcher:active { transform: none; }
  }
  
 +
 +/* Black Volt storefront */
-+.volt-hero {
-+  position: relative;
-+  isolation: isolate;
-+  overflow: hidden;
-+  border-bottom: 1px solid var(--border);
-+  background: linear-gradient(145deg, var(--background) 32%, var(--card));
-+}
-+
-+.volt-hero-inner {
-+  display: grid;
-+  align-items: center;
-+  gap: clamp(1rem, 3vw, 3rem);
-+  padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 3vw, 2.5rem);
-+}
-+
-+.volt-hero-kicker {
-+  margin-bottom: .65rem;
-+  color: var(--primary-glow);
-+  font-size: .75rem;
-+  font-weight: 800;
-+  letter-spacing: .06em;
-+  text-transform: uppercase;
-+}
-+
-+.volt-hero-copy h1 {
-+  max-width: 13ch;
-+  font-size: clamp(1.85rem, 5.25vw, 4.4rem);
-+  line-height: 1.06;
-+  letter-spacing: -.045em;
-+  text-wrap: balance;
-+}
-+
-+.volt-hero-description {
-+  margin-block: .8rem 1.15rem;
-+  color: var(--muted-foreground);
-+  font-size: clamp(.875rem, 1.3vw, 1.05rem);
-+}
-+
-+.volt-hero-art {
-+  position: relative;
-+  display: grid;
-+  min-width: 0;
-+  height: clamp(12rem, 50vw, 21rem);
-+  place-items: center;
-+  overflow: hidden;
-+  border: 1px solid var(--border);
-+  border-radius: 1rem;
-+  background: radial-gradient(ellipse at 60% 45%, color-mix(in srgb, var(--season-hue, var(--primary)) 25%, var(--card)), var(--background) 76%);
-+}
-+
-+.volt-hero-art img {
-+  width: 100%;
-+  height: 100%;
-+  min-height: 0;
-+  padding: .625rem 1rem 1.625rem;
-+  object-fit: contain;
-+}
-+
-+.volt-hero-art-custom img {
-+  padding: 0;
-+}
-+
-+.volt-hero-art figcaption {
-+  position: absolute;
-+  inset: auto 0 .65rem;
-+  padding-inline: .75rem;
-+  color: var(--muted-foreground);
-+  font-size: .75rem;
-+  text-align: center;
-+}
-+
 +.volt-launches {
 +  padding-block: clamp(1.5rem, 4vw, 3.5rem);
 +}
@@ -627,15 +473,6 @@ index 7e28532..2a951ab 100644
 +}
 +.volt-cart-scroll {
 +  scroll-padding-block: 1rem;
-+}
-+
-+@media (min-width: 768px) {
-+  .volt-hero-inner {
-+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-+  }
-+  .volt-hero-art {
-+    height: clamp(17rem, 35vw, 29rem);
-+  }
 +}
 +
 +@media (prefers-reduced-motion: reduce) {
