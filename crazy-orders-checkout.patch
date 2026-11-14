@@ -1,0 +1,874 @@
+diff --git a/src/components/admin-orders.tsx b/src/components/admin-orders.tsx
+new file mode 100644
+index 0000000..64f25fb
+--- /dev/null
++++ b/src/components/admin-orders.tsx
+@@ -0,0 +1,309 @@
++import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
++import { ClipboardList, RefreshCw, Search } from "lucide-react";
++import { useState, type FormEvent } from "react";
++import {
++  AlertDialog,
++  AlertDialogCancel,
++  AlertDialogContent,
++  AlertDialogDescription,
++  AlertDialogFooter,
++  AlertDialogHeader,
++  AlertDialogTitle,
++} from "@/components/ui/alert-dialog";
++import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
++import { brlFmt } from "@/lib/cart";
++import { operationsQuery, payments, type Payment } from "@/lib/operations";
++import { orderCode, ordersClient, type ShopOrder } from "@/lib/orders";
++
++const pageSize = 20;
++const orderFields =
++  "id,code,customer_name,phone,address,items,total,created_at,confirmed_at,sale_id";
++const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
++
++export function AdminOrders({ linkedCode }: { linkedCode: string | undefined }) {
++  const [input, setInput] = useState(linkedCode ?? "");
++  const [code, setCode] = useState(linkedCode);
++  const [page, setPage] = useState(0);
++  const [selected, setSelected] = useState<ShopOrder | null>(null);
++  const [payment, setPayment] = useState<Payment | "">("");
++  const client = useQueryClient();
++
++  const { data, isPending, isError, isFetching, refetch } = useQuery({
++    queryKey: ["shop-orders", code, page],
++    queryFn: async () => {
++      let request = ordersClient.from("shop_orders").select(orderFields, { count: "exact" });
++      request = code ? request.eq("code", code) : request.is("confirmed_at", null);
++      const { data, error, count } = await request
++        .order("created_at", { ascending: false })
++        .order("id", { ascending: false })
++        .range(page * pageSize, (page + 1) * pageSize - 1);
++      if (error) throw error;
++      return { orders: data, count: count ?? 0 };
++    },
++    refetchInterval: 30_000,
++  });
++
++  const confirmation = useMutation({
++    mutationFn: async ({ order, method }: { order: ShopOrder; method: Payment }) => {
++      const { error } = await ordersClient.rpc("confirm_shop_order", {
++        p_order_id: order.id,
++        p_payment: method,
++      });
++      if (error) {
++        throw new Error(
++          error.code === "P0001"
++            ? error.message
++            : "Não foi possível confirmar a venda. Tente novamente.",
++        );
++      }
++    },
++    onSuccess: async () => {
++      if (selected) {
++        setInput(selected.code);
++        setCode(selected.code);
++        setPage(0);
++      }
++      setSelected(null);
++      await Promise.all([
++        client.invalidateQueries({ queryKey: ["shop-orders"] }),
++        client.invalidateQueries({ queryKey: operationsQuery.queryKey }),
++      ]);
++    },
++  });
++
++  function search(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    setCode(orderCode.parse(input.trim()));
++    setPage(0);
++  }
++
++  function openConfirmation(order: ShopOrder) {
++    confirmation.reset();
++    setSelected(order);
++    setPayment("");
++  }
++
++  return (
++    <section className="space-y-5" aria-labelledby="pending-orders-title">
++      <div className="flex flex-wrap items-center justify-between gap-3">
++        <div>
++          <h1 id="pending-orders-title" className="font-display text-3xl font-bold">
++            Pedidos pendentes
++          </h1>
++          <p className="mt-1 text-sm text-muted-foreground">
++            Pesquise pelo código recebido no WhatsApp.
++          </p>
++        </div>
++        <Button
++          type="button"
++          variant="outline"
++          disabled={isFetching}
++          onClick={() => void refetch()}
++        >
++          <RefreshCw className="h-4 w-4" aria-hidden="true" />
++          Atualizar
++        </Button>
++      </div>
++
++      <form onSubmit={search} className="flex flex-wrap items-end gap-2">
++        <div className="w-full max-w-52">
++          <label htmlFor="order-code" className="mb-1 block text-sm font-medium">
++            Código do pedido
++          </label>
++          <Input
++            id="order-code"
++            value={input}
++            onChange={(e) => setInput(e.target.value)}
++            inputMode="numeric"
++            pattern="[0-9]{1,15}"
++            maxLength={15}
++            placeholder="0443"
++          />
++        </div>
++        <Button type="submit" variant="commerce">
++          <Search className="h-4 w-4" aria-hidden="true" />
++          Pesquisar
++        </Button>
++        {code && (
++          <Button
++            type="button"
++            variant="ghost"
++            onClick={() => {
++              setInput("");
++              setCode(undefined);
++              setPage(0);
++            }}
++          >
++            Voltar aos pendentes
++          </Button>
++        )}
++      </form>
++
++      {isPending && (
++        <p role="status" className="text-sm text-muted-foreground">
++          Carregando pedidos…
++        </p>
++      )}
++      {isError && (
++        <p role="alert" className="text-sm text-destructive">
++          Não foi possível carregar os pedidos. Use Atualizar para tentar novamente.
++        </p>
++      )}
++      {data?.orders.length === 0 && (
++        <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
++          {code
++            ? `Pedido #${code} não encontrado.`
++            : page
++              ? "Nenhum pedido nesta página."
++              : "Nenhum pedido pendente."}
++        </p>
++      )}
++      <div className="grid gap-4 lg:grid-cols-2">
++        {data?.orders.map((order) => (
++          <article
++            key={order.id}
++            className="overflow-hidden rounded-xl border border-border bg-card"
++          >
++            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
++              <div className="flex items-center gap-2">
++                <ClipboardList className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
++                <h2 className="font-display font-bold">Pedido #{order.code}</h2>
++              </div>
++              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
++                {order.confirmed_at ? "Venda confirmada" : "Pendente"}
++              </span>
++            </header>
++            <div className="space-y-4 p-5">
++              <dl className="grid grid-cols-2 gap-3 break-words text-sm">
++                <div>
++                  <dt className="text-muted-foreground">Cliente</dt>
++                  <dd className="font-medium">{order.customer_name}</dd>
++                </div>
++                <div>
++                  <dt className="text-muted-foreground">Telefone</dt>
++                  <dd className="font-medium">
++                    <a className="hover:underline" href={`tel:${order.phone}`}>
++                      {order.phone}
++                    </a>
++                  </dd>
++                </div>
++                <div className="col-span-2">
++                  <dt className="text-muted-foreground">Endereço de entrega</dt>
++                  <dd className="whitespace-pre-line font-medium">{order.address}</dd>
++                </div>
++              </dl>
++              <ul className="divide-y divide-border border-y border-border text-sm">
++                {order.items.map((line) => (
++                  <li
++                    key={JSON.stringify([line.product_id, line.flavor])}
++                    className="flex justify-between gap-3 py-2"
++                  >
++                    <div className="min-w-0 break-words">
++                      {line.quantity} × {line.product_name}
++                      {line.flavor && (
++                        <span className="block text-muted-foreground">{line.flavor}</span>
++                      )}
++                    </div>
++                    <span className="shrink-0">{brlFmt(line.unit_price * line.quantity)}</span>
++                  </li>
++                ))}
++              </ul>
++              <div className="flex flex-wrap justify-between gap-2 text-sm">
++                <time className="text-muted-foreground" dateTime={order.created_at}>
++                  {dateTime.format(new Date(order.created_at))}
++                </time>
++                <span className="font-bold">Total {brlFmt(order.total)}</span>
++              </div>
++              {!order.confirmed_at && (
++                <Button type="button" variant="commerce" onClick={() => openConfirmation(order)}>
++                  Confirmar venda
++                </Button>
++              )}
++            </div>
++          </article>
++        ))}
++      </div>
++      {(page > 0 || (data?.count ?? 0) > pageSize) && (
++        <nav aria-label="Páginas de pedidos" className="flex items-center gap-3">
++          <Button
++            variant="outline"
++            disabled={page === 0 || isFetching}
++            onClick={() => setPage((value) => value - 1)}
++          >
++            Anterior
++          </Button>
++          <span className="text-sm text-muted-foreground">Página {page + 1}</span>
++          <Button
++            variant="outline"
++            disabled={isFetching || (page + 1) * pageSize >= (data?.count ?? 0)}
++            onClick={() => setPage((value) => value + 1)}
++          >
++            Próxima
++          </Button>
++        </nav>
++      )}
++
++      <AlertDialog
++        open={!!selected}
++        onOpenChange={(open) => {
++          if (!open && !confirmation.isPending) setSelected(null);
++        }}
++      >
++        <AlertDialogContent>
++          <AlertDialogHeader>
++            <AlertDialogTitle>Confirmar venda do pedido #{selected?.code}</AlertDialogTitle>
++            <AlertDialogDescription>
++              Registre a forma de pagamento recebida para baixar os itens do estoque e lançar{" "}
++              {brlFmt(selected?.total ?? 0)} no financeiro.
++            </AlertDialogDescription>
++          </AlertDialogHeader>
++          <form
++            onSubmit={(e) => {
++              e.preventDefault();
++              if (selected && payment && !confirmation.isPending)
++                confirmation.mutate({ order: selected, method: payment });
++            }}
++            className="space-y-4"
++          >
++            <div>
++              <label htmlFor="order-payment" className="text-sm font-semibold">
++                Forma de pagamento
++              </label>
++              <select
++                id="order-payment"
++                required
++                value={payment}
++                disabled={confirmation.isPending}
++                onChange={(e) => setPayment(e.target.value as Payment | "")}
++                className="mt-1 w-full rounded-lg border border-input bg-secondary p-2 text-sm"
++              >
++                <option value="">Selecione</option>
++                {Object.entries(payments).map(([value, label]) => (
++                  <option key={value} value={value}>
++                    {label}
++                  </option>
++                ))}
++              </select>
++            </div>
++            {confirmation.error && (
++              <p role="alert" className="text-sm text-destructive">
++                {confirmation.error.message}
++              </p>
++            )}
++            <AlertDialogFooter>
++              <AlertDialogCancel disabled={confirmation.isPending}>Voltar</AlertDialogCancel>
++              <Button
++                type="submit"
++                variant="commerce"
++                disabled={!payment || confirmation.isPending}
++              >
++                {confirmation.isPending ? "Confirmando…" : "Dar baixa na venda"}
++              </Button>
++            </AlertDialogFooter>
++          </form>
++        </AlertDialogContent>
++      </AlertDialog>
++    </section>
++  );
++}
+diff --git a/src/components/cart-checkout.tsx b/src/components/cart-checkout.tsx
+new file mode 100644
+index 0000000..5d623e5
+--- /dev/null
++++ b/src/components/cart-checkout.tsx
+@@ -0,0 +1,222 @@
++import { useRef, useState, type FormEvent, type ReactNode } from "react";
++import { MessageCircle } from "lucide-react";
++import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
++import { Textarea } from "@/components/ui/textarea";
++import { brlFmt, cartCount, cartTotal, type CartItem } from "@/lib/cart";
++import { deliverySchema, orderCode, orderMessage, ordersClient } from "@/lib/orders";
++
++const receiptKey = "crazypods-last-order";
++
++function lastOrder() {
++  try {
++    return orderCode.parse(sessionStorage.getItem(receiptKey));
++  } catch {
++    return undefined;
++  }
++}
++
++type Props = {
++  items: CartItem[];
++  whatsappBase: string;
++  onComplete: () => void;
++  onClear: () => void;
++  children: ReactNode;
++};
++
++export function CartCheckout({ items, whatsappBase, onComplete, onClear, children }: Props) {
++  const [code, setCode] = useState(lastOrder);
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState("");
++  const inFlight = useRef(false);
++  const request = useRef<{ fingerprint: string; id: string } | null>(null);
++
++  function whatsappUrl(order: string) {
++    return whatsappBase + encodeURIComponent(orderMessage(order, window.location.origin));
++  }
++
++  async function checkout(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (inFlight.current || !items.length) return;
++
++    const fields = new FormData(event.currentTarget);
++    const delivery = deliverySchema.safeParse({
++      name: fields.get("name"),
++      phone: fields.get("phone"),
++      address: fields.get("address"),
++    });
++    if (!delivery.success) {
++      setError(delivery.error.issues[0]?.message ?? "Revise seus dados de entrega.");
++      return;
++    }
++
++    const lines = items.map(({ id, flavor, qty, price }) => ({
++      product_id: id,
++      flavor: flavor ?? "",
++      quantity: qty,
++      expected_price: price,
++    }));
++    const fingerprint = JSON.stringify({ delivery: delivery.data, lines });
++    if (request.current?.fingerprint !== fingerprint) {
++      request.current = { fingerprint, id: crypto.randomUUID() };
++    }
++
++    inFlight.current = true;
++    setBusy(true);
++    setError("");
++    // Open in the click gesture so mobile browsers can hand off to WhatsApp.
++    let popup: Window | null = null;
++    try {
++      popup = window.open("about:blank", "_blank");
++      if (popup) popup.opener = null;
++    } catch {
++      // The saved order still offers a direct WhatsApp link.
++    }
++    try {
++      const { data, error: failure } = await ordersClient.rpc("create_shop_order", {
++        p_request_id: request.current.id,
++        p_name: delivery.data.name,
++        p_phone: delivery.data.phone,
++        p_address: delivery.data.address,
++        p_items: lines,
++      });
++      if (failure || !data) {
++        const detail = failure?.code === "P0001" ? failure.message : undefined;
++        throw new Error(detail || "Não foi possível salvar o pedido. Tente novamente.");
++      }
++      try {
++        sessionStorage.setItem(receiptKey, data);
++      } catch {
++        // The receipt remains available in the open cart if storage is blocked.
++      }
++      setCode(data);
++      request.current = null;
++      onComplete();
++      try {
++        if (popup && !popup.closed) popup.location.replace(whatsappUrl(data));
++      } catch {
++        popup?.close();
++      }
++    } catch (cause) {
++      popup?.close();
++      setError(cause instanceof Error ? cause.message : "Não foi possível salvar o pedido.");
++    } finally {
++      inFlight.current = false;
++      setBusy(false);
++    }
++  }
++
++  return (
++    <form onSubmit={checkout} className="flex min-h-0 flex-1 flex-col">
++      <fieldset disabled={busy} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
++        {items.length === 0 && code ? (
++          <div className="space-y-3 rounded-xl border border-border bg-secondary p-4">
++            <p role="status" className="font-display text-lg font-bold">
++              Pedido #{code} criado
++            </p>
++            <p className="text-sm text-muted-foreground">
++              Envie a mensagem no WhatsApp para a loja localizar seu pedido.
++            </p>
++            <a
++              href={whatsappUrl(code)}
++              target="_blank"
++              rel="noopener noreferrer"
++              className="inline-flex items-center gap-2 rounded-full bg-whatsapp px-5 py-3 text-sm font-bold text-primary-foreground"
++            >
++              <MessageCircle className="h-4 w-4" aria-hidden="true" />
++              Abrir WhatsApp
++            </a>
++          </div>
++        ) : (
++          children
++        )}
++
++        {items.length > 0 && (
++          <section
++            aria-labelledby="delivery-heading"
++            className="mt-5 space-y-3 rounded-xl border border-border bg-secondary/40 p-4"
++          >
++            <h2 id="delivery-heading" className="font-display font-semibold">
++              Dados para entrega
++            </h2>
++            <div>
++              <label htmlFor="cart-customer-name" className="text-sm font-medium">
++                Nome completo
++              </label>
++              <Input
++                id="cart-customer-name"
++                name="name"
++                autoComplete="name"
++                required
++                minLength={2}
++                maxLength={120}
++                className="mt-1"
++              />
++            </div>
++            <div>
++              <label htmlFor="cart-customer-phone" className="text-sm font-medium">
++                Telefone com DDD
++              </label>
++              <Input
++                id="cart-customer-phone"
++                name="phone"
++                type="tel"
++                autoComplete="tel"
++                required
++                maxLength={25}
++                className="mt-1"
++              />
++            </div>
++            <div>
++              <label htmlFor="cart-customer-address" className="text-sm font-medium">
++                Endereço de entrega
++              </label>
++              <Textarea
++                id="cart-customer-address"
++                name="address"
++                autoComplete="street-address"
++                placeholder="Rua, número, complemento, bairro, cidade e CEP"
++                required
++                minLength={8}
++                maxLength={500}
++                className="mt-1 min-h-20"
++              />
++            </div>
++          </section>
++        )}
++      </fieldset>
++      {items.length > 0 && (
++        <div className="border-t border-border bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
++          <div className="flex items-center justify-between gap-2">
++            <span className="text-sm text-muted-foreground">Subtotal ({cartCount(items)})</span>
++            <span className="font-display text-2xl font-bold text-gradient">
++              {brlFmt(cartTotal(items))}
++            </span>
++          </div>
++          {error && (
++            <p role="alert" className="mt-2 text-sm text-destructive">
++              {error}
++            </p>
++          )}
++          <Button
++            type="submit"
++            disabled={busy}
++            className="mt-3 h-auto min-h-12 w-full whitespace-normal rounded-full bg-whatsapp py-3 font-bold text-primary-foreground hover:bg-whatsapp/90"
++          >
++            <MessageCircle className="h-5 w-5" aria-hidden="true" />
++            {busy ? "Criando pedido…" : "Enviar pedido no WhatsApp"}
++          </Button>
++          <Button
++            type="button"
++            variant="ghost"
++            onClick={onClear}
++            disabled={busy}
++            className="mt-1 w-full text-sm text-muted-foreground"
++          >
++            Esvaziar carrinho
++          </Button>
++        </div>
++      )}
++    </form>
++  );
++}
+diff --git a/src/components/shop.tsx b/src/components/shop.tsx
+index 1ef8a45..cba7556 100644
+--- a/src/components/shop.tsx
++++ b/src/components/shop.tsx
+@@ -9,6 +9,7 @@ import {
+   ChristmasHeaderLights,
+   SnowfallEffect,
+ } from "@/components/christmas-theme";
++import { CartCheckout } from "@/components/cart-checkout";
+ import { AgeGate } from "@/components/age-gate";
+ import { photoStyle } from "@/lib/photo-layout";
+ import { Link, useNavigate } from "@tanstack/react-router";
+@@ -38,9 +39,7 @@ import {
+   addToCart,
+   setQty as setItemQty,
+   cartKey,
+-  cartTotal,
+   cartCount,
+-  cartMessage,
+ } from "@/lib/cart";
+ import type { Product } from "@/lib/products";
+ import { useQuery } from "@tanstack/react-query";
+@@ -567,7 +566,12 @@ function ShopContent({ children }: { children: ReactNode }) {
+             <div className="flex items-center justify-between border-b border-border p-5">
+               <SheetTitle className="font-display text-xl font-bold">Seu carrinho</SheetTitle>
+             </div>
+-            <div className="flex-1 space-y-3 overflow-y-auto p-5">
++            <CartCheckout
++              items={items}
++              whatsappBase={WA_NUM}
++              onComplete={() => saveItems(() => [])}
++              onClear={() => saveItems(() => [])}
++            >
+               {items.length === 0 && (
+                 <p className="py-16 text-center text-muted-foreground">
+                   Seu carrinho está vazio.
+@@ -587,6 +591,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+                         )}
+                       </div>
+                       <Button
++                        type="button"
+                         variant="ghost"
+                         aria-label="Remover"
+                         onClick={() => saveItems((c) => setItemQty(c, k, 0))}
+@@ -598,6 +603,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+                     <div className="mt-3 flex items-center justify-between">
+                       <div className="flex items-center rounded-full bg-secondary">
+                         <Button
++                          type="button"
+                           variant="ghost"
+                           aria-label="Diminuir"
+                           onClick={() => saveItems((c) => setItemQty(c, k, it.qty - 1))}
+@@ -607,6 +613,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+                         </Button>
+                         <span className="w-6 text-center text-sm font-bold">{it.qty}</span>
+                         <Button
++                          type="button"
+                           variant="ghost"
+                           aria-label="Aumentar"
+                           onClick={() => saveItems((c) => setItemQty(c, k, it.qty + 1))}
+@@ -622,35 +629,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+                   </div>
+                 );
+               })}
+-            </div>
+-            {items.length > 0 && (
+-              <div className="border-t border-border p-5">
+-                <div className="flex items-center justify-between">
+-                  <span className="text-muted-foreground">
+-                    Total ({cart} {cart === 1 ? "item" : "itens"})
+-                  </span>
+-                  <span className="font-display text-2xl font-bold text-gradient">
+-                    {brl(cartTotal(items))}
+-                  </span>
+-                </div>
+-                <a
+-                  href={WA_NUM + encodeURIComponent(cartMessage(items))}
+-                  target="_blank"
+-                  rel="noopener noreferrer"
+-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-4 font-bold text-primary-foreground transition hover:scale-[1.02]"
+-                >
+-                  <WhatsAppIcon className="h-5 w-5" />
+-                  Enviar pedido no WhatsApp
+-                </a>
+-                <Button
+-                  variant="ghost"
+-                  onClick={() => saveItems(() => [])}
+-                  className="mt-3 w-full text-center text-sm text-muted-foreground hover:text-foreground"
+-                >
+-                  Esvaziar carrinho
+-                </Button>
+-              </div>
+-            )}
++            </CartCheckout>
+           </SheetContent>
+         </Sheet>
+       </div>
+diff --git a/src/lib/orders.ts b/src/lib/orders.ts
+new file mode 100644
+index 0000000..8d2e2fc
+--- /dev/null
++++ b/src/lib/orders.ts
+@@ -0,0 +1,83 @@
++import type { SupabaseClient } from "@supabase/supabase-js";
++import { z } from "zod";
++import { supabase } from "@/integrations/supabase/client";
++import type { Database } from "@/integrations/supabase/types";
++import type { Payment } from "@/lib/operations";
++
++export const orderCode = z.preprocess(
++  (value) => (typeof value === "number" ? String(value) : value),
++  z
++    .string()
++    .regex(/^[0-9]{1,15}$/)
++    .transform((value) => value.replace(/^0+(?=\d)/, "").padStart(4, "0"))
++    .optional()
++    .catch(undefined),
++);
++
++export const deliverySchema = z.object({
++  name: z.string().trim().min(2, "Informe seu nome.").max(120),
++  phone: z
++    .string()
++    .trim()
++    .transform((value) => value.replace(/\D/g, ""))
++    .pipe(z.string().regex(/^(?:55)?[1-9][0-9]{9,10}$/, "Informe um telefone com DDD.")),
++  address: z.string().trim().min(8, "Informe rua, número, bairro e cidade.").max(500),
++});
++
++export type OrderLine = {
++  product_id: string;
++  product_name: string;
++  flavor: string;
++  quantity: number;
++  unit_price: number;
++};
++
++export type ShopOrder = {
++  id: string;
++  code: string;
++  customer_name: string;
++  phone: string;
++  address: string;
++  items: OrderLine[];
++  total: number;
++  created_at: string;
++  confirmed_at: string | null;
++  sale_id: string | null;
++};
++
++type OrdersDatabase = {
++  public: Omit<Database["public"], "Tables" | "Functions"> & {
++    Tables: Database["public"]["Tables"] & {
++      shop_orders: { Row: ShopOrder; Insert: never; Update: never; Relationships: [] };
++    };
++    Functions: Database["public"]["Functions"] & {
++      create_shop_order: {
++        Args: {
++          p_request_id: string;
++          p_name: string;
++          p_phone: string;
++          p_address: string;
++          p_items: {
++            product_id: string;
++            flavor: string;
++            quantity: number;
++            expected_price: number;
++          }[];
++        };
++        Returns: string;
++      };
++      confirm_shop_order: {
++        Args: { p_order_id: string; p_payment: Payment };
++        Returns: string;
++      };
++    };
++  };
++};
++
++export const ordersClient = supabase as unknown as SupabaseClient<OrdersDatabase>;
++
++export function orderMessage(code: string, origin: string) {
++  const url = new URL("/admin", origin);
++  url.searchParams.set("pedido", code);
++  return `Olá, este é meu pedido: ${code}\n${url.href}`;
++}
+diff --git a/src/routes/_authenticated/admin.tsx b/src/routes/_authenticated/admin.tsx
+index f7f9fdc..e6cf646 100644
+--- a/src/routes/_authenticated/admin.tsx
++++ b/src/routes/_authenticated/admin.tsx
+@@ -7,6 +7,8 @@ import { toast } from "sonner";
+ import { Plus, Pencil, Trash2, LogOut, Search, X, Upload, ExternalLink } from "lucide-react";
+ import { supabase } from "@/integrations/supabase/client";
+ import { uploadPodImage } from "@/lib/upload";
++import { AdminOrders } from "@/components/admin-orders";
++import { orderCode } from "@/lib/orders";
+ import { AdminSettings } from "@/components/admin-settings";
+ import { AdminOperations, type OperationsView } from "@/components/admin-operations";
+ import { Button } from "@/components/ui/button";
+@@ -15,6 +17,7 @@ import { DEFAULT_PHOTO_LAYOUT, photoStyle, type PhotoLayout } from "@/lib/photo-
+ import { CATEGORIES, productsQuery, type Product } from "@/lib/products";
+ 
+ export const Route = createFileRoute("/_authenticated/admin")({
++  validateSearch: (search: Record<string, unknown>) => ({ pedido: orderCode.parse(search["pedido"]) }),
+   head: () => ({
+     meta: [
+       { title: "Painel — Crazy Pods" },
+@@ -98,7 +101,11 @@ function AdminPage() {
+   const [form, setForm] = useState<Form | null>(null);
+   const [saving, setSaving] = useState(false);
+   const [uploading, setUploading] = useState(false);
+-  const [tab, setTab] = useState<"pods" | "site" | OperationsView>("overview");
++  const { pedido } = Route.useSearch();
++  const [tab, setTab] = useState<"pods" | "site" | "orders" | OperationsView>(
++    pedido ? "orders" : "overview",
++  );
++  const activeTab = pedido ? "orders" : tab;
+ 
+   const list = useMemo(
+     () =>
+@@ -113,7 +120,7 @@ function AdminPage() {
+     await qc.cancelQueries();
+     qc.clear();
+     await supabase.auth.signOut();
+-    navigate({ to: "/auth", replace: true });
++    navigate({ to: "/auth", search: { pedido }, replace: true });
+   };
+ 
+   const edit = (p: Product) =>
+@@ -278,6 +285,7 @@ function AdminPage() {
+           {(
+             [
+               ["overview", "Visão geral"],
++              ["orders", "Pedidos pendentes"],
+               ["stock", "Estoque"],
+               ["sales", "Vendas"],
+               ["finance", "Financeiro"],
+@@ -287,18 +295,23 @@ function AdminPage() {
+           ).map(([id, l]) => (
+             <Button
+               key={id}
+-              onClick={() => setTab(id)}
+-              variant={tab === id ? "commerce" : "ghost"}
++              onClick={() => {
++                setTab(id);
++                if (pedido && id !== "orders") void navigate({ to: "/admin", search: { pedido: undefined }, replace: true });
++              }}
++              variant={activeTab === id ? "commerce" : "ghost"}
+               className="h-auto whitespace-normal px-4 py-2.5 text-sm font-bold"
+             >
+               {l}
+             </Button>
+           ))}
+         </div>
+-        {tab === "site" ? (
++        {activeTab === "site" ? (
+           <AdminSettings />
+-        ) : tab !== "pods" ? (
+-          <AdminOperations view={tab} />
++        ) : activeTab === "orders" ? (
++          <AdminOrders key={pedido ?? "pending"} linkedCode={pedido} />
++        ) : activeTab !== "pods" ? (
++          <AdminOperations view={activeTab} />
+         ) : (
+           <>
+             <div className="flex flex-wrap items-center justify-between gap-4">
+diff --git a/src/routes/_authenticated/route.tsx b/src/routes/_authenticated/route.tsx
+index dacead2..b185a57 100644
+--- a/src/routes/_authenticated/route.tsx
++++ b/src/routes/_authenticated/route.tsx
+@@ -1,11 +1,17 @@
+ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+ import { supabase } from "@/integrations/supabase/client";
+ 
++import { orderCode } from "@/lib/orders";
++
+ export const Route = createFileRoute("/_authenticated")({
+   ssr: false,
+-  beforeLoad: async () => {
++  beforeLoad: async ({ location }) => {
+     const { data } = await supabase.auth.getUser();
+-    if (!data.user) throw redirect({ to: "/auth" });
++    if (!data.user)
++      throw redirect({
++        to: "/auth",
++        search: { pedido: orderCode.parse(new URLSearchParams(location.searchStr).get("pedido")) },
++      });
+     return { user: data.user };
+   },
+   component: () => <Outlet />,
+diff --git a/src/routes/auth.tsx b/src/routes/auth.tsx
+index 6718560..55c8189 100644
+--- a/src/routes/auth.tsx
++++ b/src/routes/auth.tsx
+@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
+ import { toast } from "sonner";
+ import { supabase } from "@/integrations/supabase/client";
+ 
++import { orderCode } from "@/lib/orders";
++
+ export const Route = createFileRoute("/auth")({
++  validateSearch: (search: Record<string, unknown>) => ({ pedido: orderCode.parse(search["pedido"]) }),
+   head: () => ({
+     meta: [
+       { title: "Entrar — Crazy Pods Admin" },
+@@ -23,13 +26,14 @@ const ADMIN_USERS: Record<string, string> = { admin: "jliveira56@gmail.com" };
+ 
+ function AuthPage() {
+   const navigate = useNavigate();
++  const { pedido } = Route.useSearch();
+   const [user, setUser] = useState("");
+   const [password, setPassword] = useState("");
+   const [loading, setLoading] = useState(false);
+ 
+   useEffect(() => {
+-    supabase.auth.getUser().then(({ data }) => { if (data.user) navigate({ to: "/admin" }); });
+-  }, [navigate]);
++    supabase.auth.getUser().then(({ data }) => { if (data.user) navigate({ to: "/admin", search: { pedido } }); });
++  }, [navigate, pedido]);
+ 
+   const submit = async (e: React.FormEvent) => {
+     e.preventDefault();
+@@ -39,7 +43,7 @@ function AuthPage() {
+     const { error } = await supabase.auth.signInWithPassword({ email, password });
+     setLoading(false);
+     if (error) { toast.error("Usuário ou senha incorretos."); return; }
+-    navigate({ to: "/admin" });
++    navigate({ to: "/admin", search: { pedido } });
+   };
+ 
+   return (
