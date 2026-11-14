@@ -1,0 +1,1019 @@
+diff --git a/src/components/admin-settings.tsx b/src/components/admin-settings.tsx
+index 19f9edd..4157414 100644
+--- a/src/components/admin-settings.tsx
++++ b/src/components/admin-settings.tsx
+@@ -1,3 +1,5 @@
++import { DeliveryStoreSettings } from "@/components/delivery-stores-settings";
++import { activeStores, type DeliveryStore, type StoreId } from "@/lib/delivery";
+ import { useState } from "react";
+ import { useQuery, useQueryClient } from "@tanstack/react-query";
+ import { toast } from "sonner";
+@@ -20,8 +22,21 @@ export function AdminSettings() {
+   const [uploading, setUploading] = useState(false);
+   const set = <K extends keyof typeof edits>(k: K, v: SiteSettings[K]) => setEdits((x) => ({ ...x, [k]: v }));
+ 
++  const setStore = (id: StoreId, store: DeliveryStore) =>
++    setEdits((current) => ({
++      ...current,
++      deliveryStores: { ...(current.deliveryStores ?? data?.deliveryStores ?? DEFAULT_SETTINGS.deliveryStores), [id]: store },
++    }));
++
+   const save = async () => {
+     if (s.whatsapp.replace(/\D/g, "").length < 12) { toast.error("WhatsApp deve ter DDI + DDD + número, ex: 5511986825360"); return; }
++    if (edits.deliveryStores) {
++      const filled = Object.values(s.deliveryStores).filter((store) => store.whatsapp || store.cep);
++      if (activeStores(s.deliveryStores).length !== filled.length) {
++        toast.error("Preencha o WhatsApp e localize o CEP de cada unidade que deseja ativar.");
++        return;
++      }
++    }
+     setSaving(true);
+     try {
+       await saveSettingsPatch(edits);
+@@ -101,6 +116,19 @@ export function AdminSettings() {
+         </div>
+       </section>
+ 
++      <section className={card}>
++        <h2 className="font-display text-xl font-bold">Unidades de entrega</h2>
++        <p className="mt-2 text-sm text-muted-foreground">
++          Configure os dois WhatsApps e localize os CEPs das unidades. O carrinho compara a distância aproximada em linha reta.
++        </p>
++        <div className="mt-4 grid gap-4 md:grid-cols-2">
++          <DeliveryStoreSettings id="quitauna" store={s.deliveryStores.quitauna}
++            onChange={(store) => setStore("quitauna", store)} />
++          <DeliveryStoreSettings id="jardimBoaVista" store={s.deliveryStores.jardimBoaVista}
++            onChange={(store) => setStore("jardimBoaVista", store)} />
++        </div>
++      </section>
++
+       <div className="sticky bottom-4 flex justify-end">
+         <button disabled={saving || uploading || isPending || isError} onClick={save} className="rounded-full bg-gradient-primary px-10 py-4 font-bold text-primary-foreground shadow-glow disabled:opacity-60">{saving ? "Salvando..." : "Salvar alterações do site"}</button>
+       </div>
+diff --git a/src/components/cart-checkout.tsx b/src/components/cart-checkout.tsx
+index e18dad2..c1116cb 100644
+--- a/src/components/cart-checkout.tsx
++++ b/src/components/cart-checkout.tsx
+@@ -1,16 +1,32 @@
+ import { useRef, useState, type FormEvent, type ReactNode } from "react";
++import { useQuery } from "@tanstack/react-query";
++import { CheckoutCepSearch } from "@/components/checkout-cep-search";
++import {
++  activeStores,
++  digits,
++  formatCep,
++  lookupCep,
++  nearestStore,
++  validWhatsApp,
++  whatsappLink,
++  type DeliveryStore,
++  type StoreId,
++} from "@/lib/delivery";
+ import { MessageCircle } from "lucide-react";
+ import { Button } from "@/components/ui/button";
+ import { Input } from "@/components/ui/input";
+-import { Textarea } from "@/components/ui/textarea";
+ import { brlFmt, cartCount, cartTotal, type CartItem } from "@/lib/cart";
+ import { deliverySchema, orderCode, orderMessage, ordersClient } from "@/lib/orders";
+ 
+ const receiptKey = "crazypods-last-order";
++type Receipt = { code: string; whatsapp: string | null };
+ 
+ function lastOrder() {
+   try {
+-    return orderCode.parse(sessionStorage.getItem(receiptKey));
++    const value = sessionStorage.getItem(receiptKey) ?? "";
++    const [rawCode, phone] = value.split(":");
++    const code = orderCode.parse(rawCode);
++    return code ? { code, whatsapp: phone && validWhatsApp(phone) ? phone : null } : undefined;
+   } catch {
+     return undefined;
+   }
+@@ -19,31 +35,90 @@ function lastOrder() {
+ type Props = {
+   items: CartItem[];
+   whatsappBase: string;
++  deliveryStores: Record<StoreId, DeliveryStore>;
+   onComplete: () => void;
+   onClear: () => void;
+   children: ReactNode;
+ };
+ 
+-export function CartCheckout({ items, whatsappBase, onComplete, onClear, children }: Props) {
+-  const [code, setCode] = useState(lastOrder);
++export function CartCheckout({
++  items,
++  whatsappBase,
++  deliveryStores,
++  onComplete,
++  onClear,
++  children,
++}: Props) {
++  const [receipt, setReceipt] = useState<Receipt | undefined>(lastOrder);
++  const [cep, setCep] = useState("");
++  const [findCep, setFindCep] = useState(false);
++  const [manualStore, setManualStore] = useState<StoreId>();
++  const stores = activeStores(deliveryStores);
++  const postalCode = digits(cep);
++  const postalLookup = useQuery({
++    queryKey: ["checkout-cep", postalCode],
++    enabled: items.length > 0 && postalCode.length === 8,
++    queryFn: ({ signal }) => lookupCep(postalCode, signal),
++    retry: false,
++    staleTime: 5 * 60_000,
++    gcTime: 5 * 60_000,
++  });
++  const address = postalLookup.data;
++  const route = address?.coordinates ? nearestStore(stores, address.coordinates) : undefined;
++  const store =
++    route?.store ??
++    (stores.length === 1 ? stores[0] : stores.find((one) => one.id === manualStore));
++  const needsStoreChoice = !!address && !route && stores.length > 1;
++
++  function changeCep(value: string) {
++    setCep(formatCep(value));
++    setManualStore(undefined);
++    setError("");
++  }
+   const [busy, setBusy] = useState(false);
+   const [error, setError] = useState("");
+   const inFlight = useRef(false);
+   const request = useRef<{ fingerprint: string; id: string } | null>(null);
+ 
+-  function whatsappUrl(order: string) {
+-    return whatsappBase + encodeURIComponent(orderMessage(order));
++  function whatsappUrl(order: Receipt) {
++    const base = order.whatsapp ? whatsappLink(order.whatsapp) : whatsappBase;
++    return base + encodeURIComponent(orderMessage(order.code));
+   }
+ 
+   async function checkout(event: FormEvent<HTMLFormElement>) {
+     event.preventDefault();
+     if (inFlight.current || !items.length) return;
+ 
++    if (!address || postalLookup.isFetching) {
++      setError("Informe um CEP válido e aguarde a consulta do endereço.");
++      return;
++    }
++    if (needsStoreChoice && !store) {
++      setError("Escolha a unidade que deve receber o pedido.");
++      return;
++    }
++
+     const fields = new FormData(event.currentTarget);
++    const number = String(fields.get("number") ?? "").trim();
++    const street = address.street || String(fields.get("street") ?? "").trim();
++    const complement = String(fields.get("complement") ?? "").trim();
++    if (!number || !street) {
++      setError("Preencha a rua e o número do endereço.");
++      return;
++    }
++    const fullAddress = [
++      `${street}, ${number}`,
++      complement,
++      address.district,
++      `${address.city} - ${address.state}`,
++      `CEP ${address.cep}`,
++    ]
++      .filter(Boolean)
++      .join(" · ");
+     const delivery = deliverySchema.safeParse({
+       name: fields.get("name"),
+       phone: fields.get("phone"),
+-      address: fields.get("address"),
++      address: fullAddress,
+     });
+     if (!delivery.success) {
+       setError(delivery.error.issues[0]?.message ?? "Revise seus dados de entrega.");
+@@ -56,7 +131,7 @@ export function CartCheckout({ items, whatsappBase, onComplete, onClear, childre
+       quantity: qty,
+       expected_price: price,
+     }));
+-    const fingerprint = JSON.stringify({ delivery: delivery.data, lines });
++    const fingerprint = JSON.stringify({ delivery: delivery.data, lines, store: store?.id });
+     if (request.current?.fingerprint !== fingerprint) {
+       request.current = { fingerprint, id: crypto.randomUUID() };
+     }
+@@ -84,16 +159,20 @@ export function CartCheckout({ items, whatsappBase, onComplete, onClear, childre
+         const detail = failure?.code === "P0001" ? failure.message : undefined;
+         throw new Error(detail || "Não foi possível salvar o pedido. Tente novamente.");
+       }
++      const savedOrder = { code: data, whatsapp: store?.whatsapp ?? null };
+       try {
+-        sessionStorage.setItem(receiptKey, data);
++        sessionStorage.setItem(
++          receiptKey,
++          `${savedOrder.code}:${savedOrder.whatsapp ? digits(savedOrder.whatsapp) : ""}`,
++        );
+       } catch {
+         // The receipt remains available in the open cart if storage is blocked.
+       }
+-      setCode(data);
++      setReceipt(savedOrder);
+       request.current = null;
+       onComplete();
+       try {
+-        if (popup && !popup.closed) popup.location.replace(whatsappUrl(data));
++        if (popup && !popup.closed) popup.location.replace(whatsappUrl(savedOrder));
+       } catch {
+         popup?.close();
+       }
+@@ -112,16 +191,16 @@ export function CartCheckout({ items, whatsappBase, onComplete, onClear, childre
+         disabled={busy}
+         className="volt-cart-scroll min-w-0 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
+       >
+-        {items.length === 0 && code ? (
++        {items.length === 0 && receipt ? (
+           <div className="space-y-3 rounded-xl border border-border bg-secondary p-4">
+             <p role="status" className="font-display text-lg font-bold">
+-              Pedido #{code} criado
++              Pedido #{receipt.code} criado
+             </p>
+             <p className="text-sm text-muted-foreground">
+               Envie a mensagem no WhatsApp para a loja localizar seu pedido.
+             </p>
+             <a
+-              href={whatsappUrl(code)}
++              href={whatsappUrl(receipt)}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center gap-2 rounded-full bg-whatsapp px-5 py-3 text-sm font-bold text-primary-foreground"
+@@ -189,20 +268,145 @@ export function CartCheckout({ items, whatsappBase, onComplete, onClear, childre
+               />
+             </div>
+             <div>
+-              <label htmlFor="cart-customer-address" className="text-sm font-medium">
+-                Endereço de entrega
+-              </label>
+-              <Textarea
+-                id="cart-customer-address"
+-                name="address"
+-                autoComplete="street-address"
+-                placeholder="Rua, número, complemento, bairro, cidade e CEP"
++              <div className="flex flex-wrap items-center justify-between gap-x-3">
++                <label htmlFor="cart-cep" className="text-sm font-medium">
++                  CEP
++                </label>
++                <Button
++                  type="button"
++                  variant="ghost"
++                  className="h-9 px-2 text-xs"
++                  aria-expanded={findCep}
++                  onClick={() => setFindCep((visible) => !visible)}
++                >
++                  {findCep ? "Fechar busca de CEP" : "Não sei meu CEP"}
++                </Button>
++              </div>
++              <Input
++                id="cart-cep"
++                value={cep}
++                inputMode="numeric"
++                autoComplete="postal-code"
++                placeholder="00000-000"
+                 required
+-                minLength={8}
+-                maxLength={500}
+-                className="mt-1 min-h-20 text-base"
++                pattern="[0-9]{5}-[0-9]{3}"
++                className="mt-1 h-11 text-base"
++                onChange={(event) => changeCep(event.target.value)}
+               />
+             </div>
++            {findCep && (
++              <CheckoutCepSearch
++                onSelect={(value) => {
++                  changeCep(value);
++                  setFindCep(false);
++                }}
++              />
++            )}
++            {postalLookup.isFetching && (
++              <p role="status" className="text-sm text-muted-foreground">
++                Consultando CEP…
++              </p>
++            )}
++            {postalCode.length === 8 && (postalLookup.isError || postalLookup.data === null) && (
++              <div className="space-y-1 text-sm">
++                <p role="alert" className="text-destructive">
++                  {postalLookup.isError
++                    ? "Não foi possível consultar o CEP."
++                    : "CEP não encontrado. Confira os números."}
++                </p>
++                <Button
++                  type="button"
++                  variant="outline"
++                  size="sm"
++                  onClick={() => void postalLookup.refetch()}
++                >
++                  Tentar novamente
++                </Button>
++              </div>
++            )}
++            {address && (
++              <>
++                <p role="status" className="rounded-lg border border-border bg-card p-3 text-sm">
++                  {address.street && <strong className="block">{address.street}</strong>}
++                  <span className="text-muted-foreground">
++                    {[address.district, `${address.city} - ${address.state}`]
++                      .filter(Boolean)
++                      .join(" · ")}
++                  </span>
++                </p>
++                {!address.street && (
++                  <label className="block text-sm font-medium">
++                    Rua ou avenida
++                    <Input
++                      name="street"
++                      autoComplete="address-line1"
++                      required
++                      maxLength={150}
++                      className="mt-1 h-11 text-base"
++                    />
++                  </label>
++                )}
++              </>
++            )}
++            <div className="grid grid-cols-[minmax(5rem,1fr)_minmax(0,2fr)] gap-2">
++              <label className="text-sm font-medium">
++                Número
++                <Input
++                  name="number"
++                  placeholder="123 ou s/n"
++                  required
++                  maxLength={20}
++                  className="mt-1 h-11 text-base"
++                />
++              </label>
++              <label className="text-sm font-medium">
++                Complemento <span className="text-muted-foreground">(opcional)</span>
++                <Input
++                  name="complement"
++                  placeholder="Apto., bloco, casa…"
++                  autoComplete="address-line2"
++                  maxLength={100}
++                  className="mt-1 h-11 text-base"
++                />
++              </label>
++            </div>
++            {needsStoreChoice && (
++              <label className="block text-sm font-medium">
++                Unidade para este pedido
++                <span className="mt-1 block text-xs text-muted-foreground">
++                  Este CEP não tem coordenadas disponíveis. Escolha a unidade.
++                </span>
++                <select
++                  className="mt-2 w-full rounded-lg border border-input bg-card p-2 text-base"
++                  value={manualStore ?? ""}
++                  onChange={(event) =>
++                    setManualStore(stores.find((one) => one.id === event.target.value)?.id)
++                  }
++                  required
++                >
++                  <option value="">Selecione uma unidade</option>
++                  {stores.map((one) => (
++                    <option key={one.id} value={one.id}>
++                      {one.name}
++                    </option>
++                  ))}
++                </select>
++              </label>
++            )}
++            {address && store && (
++              <div
++                role="status"
++                className="rounded-lg border border-primary/40 bg-card p-3 text-sm"
++              >
++                <strong className="block">Unidade {store.name}</strong>
++                {route && (
++                  <span className="text-xs text-muted-foreground">
++                    Aprox. {route.km.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km em
++                    linha reta
++                  </span>
++                )}
++              </div>
++            )}
+           </section>
+         )}
+       </fieldset>
+diff --git a/src/components/shop.tsx b/src/components/shop.tsx
+index 6c57207..2893cca 100644
+--- a/src/components/shop.tsx
++++ b/src/components/shop.tsx
+@@ -563,6 +563,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+             <CartCheckout
+               items={items}
+               whatsappBase={WA_NUM}
++              deliveryStores={settings.deliveryStores}
+               onComplete={() => saveItems(() => [])}
+               onClear={() => saveItems(() => [])}
+             >
+diff --git a/src/lib/settings.ts b/src/lib/settings.ts
+index e5516db..d3a1bf1 100644
+--- a/src/lib/settings.ts
++++ b/src/lib/settings.ts
+@@ -1,3 +1,4 @@
++import { emptyStores, readDeliveryStores, whatsappLink, type DeliveryStore, type StoreId } from "@/lib/delivery";
+ import type { Json } from "@/integrations/supabase/types";
+ import { migrateEngine, readEngine, type ThemeEngine } from "./theme-engine";
+ import { queryOptions } from "@tanstack/react-query";
+@@ -9,6 +10,7 @@ export type SiteSettings = {
+   marquee: string[];
+   whatsapp: string;
+   whatsappMessage: string;
++  deliveryStores: Record<StoreId, DeliveryStore>;
+   ctaTitle: string;
+   ctaText: string;
+   featuredIds: string[];
+@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
+     "Pix com desconto",
+   ],
+   whatsapp: "5511986825360",
++  deliveryStores: emptyStores,
+   whatsappMessage: "Olá! Vim pelo site da Crazy Pods e quero comprar um pod.",
+   ctaTitle: "Não achou seu sabor?",
+   ctaText: "Fala com a gente no WhatsApp e a gente encontra o pod perfeito pra você.",
+@@ -64,9 +67,10 @@ export const settingsQuery = queryOptions({
+       ...DEFAULT_SETTINGS,
+       ...Object.fromEntries(
+         Object.keys(DEFAULT_SETTINGS)
+-          .filter((key) => key in raw && key !== "season")
++          .filter((key) => key in raw && key !== "season" && key !== "deliveryStores")
+           .map((key) => [key, raw[key]]),
+       ),
++      deliveryStores: readDeliveryStores(raw["deliveryStores"]),
+       season: readEngine(raw[engineKey], raw[seasonKey]),
+     };
+   },
+@@ -115,4 +119,4 @@ export async function saveSettingsPatch(
+   throw new Error("Configurações alteradas por outra sessão. Tente salvar novamente.");
+ }
+ 
+-export const waBase = (s: SiteSettings) => `https://wa.me/${s.whatsapp.replace(/\D/g, "")}?text=`;
++export const waBase = (s: SiteSettings) => whatsappLink(s.whatsapp);
+diff --git a/src/lib/delivery.ts b/src/lib/delivery.ts
+new file mode 100644
+index 0000000..318edac
+--- /dev/null
++++ b/src/lib/delivery.ts
+@@ -0,0 +1,183 @@
++import { z } from "zod";
++
++export const storeNames = {
++  quitauna: "Quitaúna",
++  jardimBoaVista: "Jardim Boa Vista",
++} as const;
++
++export type StoreId = keyof typeof storeNames;
++export type Coordinates = { latitude: number; longitude: number };
++export type DeliveryStore = {
++  whatsapp: string;
++  cep: string;
++  coordinates: Coordinates | null;
++};
++
++export const emptyStore: DeliveryStore = { whatsapp: "", cep: "", coordinates: null };
++export const emptyStores = { quitauna: emptyStore, jardimBoaVista: emptyStore };
++
++export const digits = (value: string) => value.replace(/\D/g, "");
++export const formatCep = (value: string) =>
++  digits(value)
++    .slice(0, 8)
++    .replace(/^(\d{5})(\d)/, "$1-$2");
++export const validWhatsApp = (value: string) => /^55[1-9]\d{9,10}$/.test(digits(value));
++export const whatsappLink = (number: string) => `https://wa.me/${digits(number)}?text=`;
++
++const coordinatesSchema = z.object({
++  latitude: z.number().min(-90).max(90),
++  longitude: z.number().min(-180).max(180),
++});
++
++const storeSchema = z.object({
++  whatsapp: z.string(),
++  cep: z.string(),
++  coordinates: coordinatesSchema.nullable(),
++});
++
++export function readDeliveryStores(value: unknown): Record<StoreId, DeliveryStore> {
++  const stores = z
++    .object({
++      quitauna: storeSchema.catch(emptyStore).default(emptyStore),
++      jardimBoaVista: storeSchema.catch(emptyStore).default(emptyStore),
++    })
++    .safeParse(value);
++  return stores.success ? stores.data : emptyStores;
++}
++
++const storeIds: StoreId[] = ["quitauna", "jardimBoaVista"];
++
++export function activeStores(stores: Record<StoreId, DeliveryStore>) {
++  return storeIds.flatMap((id) => {
++    const store = stores[id];
++    if (!validWhatsApp(store.whatsapp) || digits(store.cep).length !== 8 || !store.coordinates)
++      return [];
++    return [{ ...store, id, name: storeNames[id], coordinates: store.coordinates }];
++  });
++}
++
++export type ActiveStore = ReturnType<typeof activeStores>[number];
++
++export function distanceKm(origin: Coordinates, destination: Coordinates) {
++  const radians = Math.PI / 180;
++  const lat = (destination.latitude - origin.latitude) * radians;
++  const lon = (destination.longitude - origin.longitude) * radians;
++  const haversine =
++    Math.sin(lat / 2) ** 2 +
++    Math.cos(origin.latitude * radians) *
++      Math.cos(destination.latitude * radians) *
++      Math.sin(lon / 2) ** 2;
++  return 2 * 6371.0088 * Math.asin(Math.sqrt(Math.min(1, haversine)));
++}
++
++export function nearestStore(stores: ActiveStore[], point: Coordinates) {
++  return stores
++    .map((store) => ({ store, km: distanceKm(store.coordinates, point) }))
++    .sort((first, second) => first.km - second.km)[0];
++}
++
++export type DeliveryAddress = {
++  cep: string;
++  street: string;
++  district: string;
++  city: string;
++  state: string;
++  coordinates: Coordinates | null;
++};
++
++const viaCepAddress = z.object({
++  cep: z.string().regex(/^\d{5}-?\d{3}$/),
++  logradouro: z.string(),
++  bairro: z.string(),
++  localidade: z.string().min(1),
++  uf: z.string().regex(/^[A-Z]{2}$/),
++});
++
++const brasilAddress = z.object({
++  cep: z.string().regex(/^\d{5}-?\d{3}$/),
++  street: z.string().optional(),
++  neighborhood: z.string().optional(),
++  city: z.string().min(1),
++  state: z.string().regex(/^[A-Z]{2}$/),
++  location: z.object({ coordinates: z.unknown().optional() }).optional(),
++});
++
++function point(value: unknown) {
++  const raw = z
++    .object({
++      latitude: z.union([z.number(), z.string().trim().min(1)]),
++      longitude: z.union([z.number(), z.string().trim().min(1)]),
++    })
++    .safeParse(value);
++  if (!raw.success) return null;
++  const parsed = coordinatesSchema.safeParse({
++    latitude: Number(raw.data.latitude),
++    longitude: Number(raw.data.longitude),
++  });
++  if (!parsed.success || (parsed.data.latitude === 0 && parsed.data.longitude === 0)) return null;
++  return parsed.data;
++}
++
++async function getJson(url: string, signal?: AbortSignal): Promise<unknown> {
++  const timeout = AbortSignal.timeout(4500);
++  const response = await fetch(url, {
++    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
++  });
++  if (!response.ok) return null;
++  return response.json();
++}
++
++export async function lookupCep(
++  value: string,
++  signal?: AbortSignal,
++): Promise<DeliveryAddress | null> {
++  const cep = digits(value);
++  if (cep.length !== 8) return null;
++  const [direct, geo] = await Promise.allSettled([
++    getJson(`https://viacep.com.br/ws/${cep}/json/`, signal),
++    getJson(`https://brasilapi.com.br/api/cep/v2/${cep}`, signal),
++  ]);
++  signal?.throwIfAborted();
++  const postal = viaCepAddress.safeParse(direct.status === "fulfilled" ? direct.value : null);
++  const geocoded = brasilAddress.safeParse(geo.status === "fulfilled" ? geo.value : null);
++  const matched = geocoded.success && digits(geocoded.data.cep) === cep ? geocoded.data : null;
++  const coordinates = point(matched?.location?.coordinates);
++  if (postal.success && digits(postal.data.cep) === cep) {
++    return {
++      cep: formatCep(cep),
++      street: postal.data.logradouro || matched?.street || "",
++      district: postal.data.bairro || matched?.neighborhood || "",
++      city: postal.data.localidade,
++      state: postal.data.uf,
++      coordinates,
++    };
++  }
++  if (!matched && direct.status === "rejected" && geo.status === "rejected") {
++    throw new Error("A consulta de CEP está indisponível. Tente novamente.");
++  }
++  return matched
++    ? {
++        cep: formatCep(cep),
++        street: matched.street ?? "",
++        district: matched.neighborhood ?? "",
++        city: matched.city,
++        state: matched.state,
++        coordinates,
++      }
++    : null;
++}
++
++export async function searchPostalAddresses(city: string, street: string, signal?: AbortSignal) {
++  const url = `https://viacep.com.br/ws/SP/${encodeURIComponent(city.trim())}/${encodeURIComponent(street.trim())}/json/`;
++  const rows = z.array(viaCepAddress).safeParse(await getJson(url, signal));
++  if (!rows.success) throw new Error("Não foi possível pesquisar o endereço. Tente novamente.");
++  return rows.data
++    .map((address) => ({
++      cep: formatCep(address.cep),
++      street: address.logradouro,
++      district: address.bairro,
++      city: address.localidade,
++      state: address.uf,
++    }))
++    .slice(0, 25);
++}
+diff --git a/src/components/checkout-cep-search.tsx b/src/components/checkout-cep-search.tsx
+new file mode 100644
+index 0000000..605689c
+--- /dev/null
++++ b/src/components/checkout-cep-search.tsx
+@@ -0,0 +1,89 @@
++import { useState } from "react";
++import { useQuery } from "@tanstack/react-query";
++import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
++import { searchPostalAddresses } from "@/lib/delivery";
++
++export function CheckoutCepSearch({ onSelect }: { onSelect: (cep: string) => void }) {
++  const [city, setCity] = useState("Osasco");
++  const [street, setStreet] = useState("");
++  const [search, setSearch] = useState<{ city: string; street: string }>();
++  const results = useQuery({
++    queryKey: ["checkout-address-search", search],
++    enabled: !!search,
++    queryFn: ({ signal }) =>
++      searchPostalAddresses(search?.city ?? "", search?.street ?? "", signal),
++    retry: false,
++    staleTime: 60_000,
++    gcTime: 0,
++  });
++
++  function findCep() {
++    const query = { city: city.trim(), street: street.trim() };
++    if (query.city === search?.city && query.street === search?.street) {
++      void results.refetch();
++    } else {
++      setSearch(query);
++    }
++  }
++
++  return (
++    <div className="space-y-3 rounded-xl border border-border bg-card p-3">
++      <p className="text-sm font-bold">Encontre seu CEP em São Paulo</p>
++      <label className="block text-sm">
++        Cidade
++        <Input
++          value={city}
++          maxLength={80}
++          className="mt-1 text-base"
++          onChange={(event) => setCity(event.target.value)}
++        />
++      </label>
++      <label className="block text-sm">
++        Rua ou avenida
++        <Input
++          value={street}
++          maxLength={120}
++          className="mt-1 text-base"
++          onChange={(event) => setStreet(event.target.value)}
++        />
++      </label>
++      <Button
++        type="button"
++        variant="outline"
++        disabled={city.trim().length < 3 || street.trim().length < 3 || results.isFetching}
++        onClick={findCep}
++      >
++        {results.isFetching ? "Pesquisando…" : "Pesquisar CEP"}
++      </Button>
++      {results.isError && (
++        <p role="alert" className="text-sm text-destructive">
++          A pesquisa falhou. Tente novamente.
++        </p>
++      )}
++      {results.data?.length === 0 && (
++        <p role="status" className="text-sm text-muted-foreground">
++          Nenhum CEP encontrado. Confira a cidade e o nome da rua.
++        </p>
++      )}
++      {!!results.data?.length && (
++        <ul className="max-h-56 space-y-1 overflow-y-auto" aria-label="CEPs encontrados">
++          {results.data.map((address, i) => (
++            <li key={`${address.cep}-${i}`}>
++              <button
++                type="button"
++                onClick={() => onSelect(address.cep)}
++                className="w-full rounded-lg border border-border p-2 text-left text-sm hover:bg-secondary"
++              >
++                <span className="font-semibold">{address.street}</span>
++                <span className="block text-xs text-muted-foreground">
++                  {[address.district, address.city, address.cep].filter(Boolean).join(" · ")}
++                </span>
++              </button>
++            </li>
++          ))}
++        </ul>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/delivery-stores-settings.tsx b/src/components/delivery-stores-settings.tsx
+new file mode 100644
+index 0000000..7d361ec
+--- /dev/null
++++ b/src/components/delivery-stores-settings.tsx
+@@ -0,0 +1,168 @@
++import { useState } from "react";
++import { toast } from "sonner";
++import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
++import {
++  digits,
++  formatCep,
++  lookupCep,
++  storeNames,
++  type DeliveryStore,
++  type StoreId,
++} from "@/lib/delivery";
++
++type Props = {
++  id: StoreId;
++  store: DeliveryStore;
++  onChange: (store: DeliveryStore) => void;
++};
++
++export function DeliveryStoreSettings({ id, store, onChange }: Props) {
++  const [busy, setBusy] = useState(false);
++  const name = storeNames[id];
++  const [manual, setManual] = useState(false);
++  const [latitude, setLatitude] = useState("");
++  const [longitude, setLongitude] = useState("");
++
++  function saveCoordinates() {
++    const lat = Number(latitude.trim().replace(",", "."));
++    const lon = Number(longitude.trim().replace(",", "."));
++    if (
++      !latitude.trim() ||
++      !longitude.trim() ||
++      !Number.isFinite(lat) ||
++      !Number.isFinite(lon) ||
++      lat < -24 ||
++      lat > -23 ||
++      lon < -47 ||
++      lon > -46 ||
++      digits(store.cep).length !== 8
++    ) {
++      toast.error("Confira o CEP da unidade e as coordenadas do ponto em Osasco.");
++      return;
++    }
++    onChange({ ...store, coordinates: { latitude: lat, longitude: lon } });
++    setManual(false);
++  }
++
++  async function locate() {
++    setBusy(true);
++    try {
++      const address = await lookupCep(store.cep);
++      if (
++        !address?.coordinates ||
++        address.city.toLowerCase() !== "osasco" ||
++        address.state !== "SP"
++      ) {
++        toast.error("Não encontramos coordenadas para esse CEP em Osasco.");
++        return;
++      }
++      onChange({ ...store, cep: address.cep, coordinates: address.coordinates });
++      toast.success([address.street, address.district, address.city].filter(Boolean).join(" · "));
++    } catch {
++      toast.error("Não foi possível consultar esse CEP.");
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  return (
++    <fieldset disabled={busy} className="min-w-0 rounded-xl border border-border p-4">
++      <legend className="px-2 text-sm font-bold">{name} · Osasco</legend>
++      <div className="space-y-3">
++        <label className="block text-sm font-medium">
++          WhatsApp · 55 + DDD + número
++          <Input
++            value={store.whatsapp}
++            type="tel"
++            placeholder="55 + DDD + número"
++            className="mt-1"
++            maxLength={24}
++            onChange={(event) => onChange({ ...store, whatsapp: event.target.value })}
++          />
++        </label>
++        <div className="flex flex-wrap items-end gap-2">
++          <label className="min-w-28 flex-1 text-sm font-medium">
++            CEP da unidade
++            <Input
++              value={store.cep}
++              inputMode="numeric"
++              placeholder="00000-000"
++              className="mt-1"
++              onChange={(event) =>
++                onChange({ ...store, cep: formatCep(event.target.value), coordinates: null })
++              }
++            />
++          </label>
++          <Button
++            type="button"
++            variant="outline"
++            disabled={digits(store.cep).length !== 8}
++            onClick={locate}
++          >
++            {busy ? "Consultando…" : "Localizar"}
++          </Button>
++        </div>
++        <p className="text-xs text-muted-foreground">
++          {store.coordinates
++            ? "Ponto de referência configurado."
++            : "Informe o CEP e localize o ponto de referência da unidade."}
++        </p>
++        <Button
++          type="button"
++          variant="outline"
++          size="sm"
++          aria-expanded={manual}
++          onClick={() => {
++            setLatitude(store.coordinates?.latitude.toString() ?? "");
++            setLongitude(store.coordinates?.longitude.toString() ?? "");
++            setManual((open) => !open);
++          }}
++        >
++          {manual ? "Fechar coordenadas" : "Informar coordenadas do mapa"}
++        </Button>
++        {manual && (
++          <div className="grid grid-cols-2 gap-2">
++            <label className="text-sm">
++              Latitude
++              <Input
++                value={latitude}
++                inputMode="decimal"
++                maxLength={24}
++                onChange={(e) => setLatitude(e.target.value)}
++              />
++            </label>
++            <label className="text-sm">
++              Longitude
++              <Input
++                value={longitude}
++                inputMode="decimal"
++                maxLength={24}
++                onChange={(e) => setLongitude(e.target.value)}
++              />
++            </label>
++            <Button
++              type="button"
++              variant="secondary"
++              size="sm"
++              className="col-span-2"
++              onClick={saveCoordinates}
++            >
++              Usar este ponto
++            </Button>
++          </div>
++        )}
++        {(store.whatsapp || store.cep) && (
++          <Button
++            type="button"
++            variant="ghost"
++            size="sm"
++            onClick={() => onChange({ whatsapp: "", cep: "", coordinates: null })}
++          >
++            Limpar unidade
++          </Button>
++        )}
++      </div>
++    </fieldset>
++  );
++}
+diff --git a/src/components/cart-delivery-routing.test.tsx b/src/components/cart-delivery-routing.test.tsx
+new file mode 100644
+index 0000000..61f4bf1
+--- /dev/null
++++ b/src/components/cart-delivery-routing.test.tsx
+@@ -0,0 +1,103 @@
++import { fireEvent, render, screen, waitFor } from "@testing-library/react";
++import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { CartCheckout } from "./cart-checkout";
++
++const { createOrder } = vi.hoisted(() => ({ createOrder: vi.fn() }));
++vi.mock("@/lib/orders", async (importOriginal) => ({
++  ...(await importOriginal<typeof import("@/lib/orders")>()),
++  ordersClient: { rpc: createOrder },
++}));
++
++describe("checkout delivery routing", () => {
++  beforeEach(() => {
++    sessionStorage.clear();
++    createOrder.mockReset();
++    vi.restoreAllMocks();
++  });
++
++  it("routes to the closer store and reopens WhatsApp with the saved number and order code", async () => {
++    const onComplete = vi.fn();
++    const stores = {
++      quitauna: {
++        whatsapp: "5511900000001",
++        cep: "06000-001",
++        coordinates: { latitude: -23.52, longitude: -46.79 },
++      },
++      jardimBoaVista: {
++        whatsapp: "5511900000002",
++        cep: "06000-002",
++        coordinates: { latitude: -23.57, longitude: -46.81 },
++      },
++    };
++    const replace = vi.fn();
++    vi.spyOn(window, "open").mockImplementation(
++      () => ({ location: { replace }, close: vi.fn() }) as unknown as Window,
++    );
++    vi.spyOn(globalThis, "fetch").mockImplementation(
++      async (url) =>
++        new Response(
++          JSON.stringify(
++            String(url).includes("viacep")
++              ? {
++                  cep: "06000-003",
++                  logradouro: "Rua Teste",
++                  bairro: "Bairro Teste",
++                  localidade: "Osasco",
++                  uf: "SP",
++                }
++              : {
++                  cep: "06000003",
++                  city: "Osasco",
++                  state: "SP",
++                  location: { coordinates: { latitude: "-23.569", longitude: "-46.809" } },
++                },
++          ),
++        ),
++    );
++    createOrder.mockResolvedValue({ data: "0042", error: null });
++    const client = new QueryClient();
++    const props = {
++      whatsappBase: "https://wa.me/5511900000000?text=",
++      deliveryStores: stores,
++      onComplete,
++      onClear: vi.fn(),
++    };
++    const items = [{ id: "item", name: "Produto de teste", flavor: null, price: 100, qty: 1 }];
++    const wrapper = (cart: typeof items) => (
++      <QueryClientProvider client={client}>
++        <CartCheckout {...props} items={cart}>
++          Itens
++        </CartCheckout>
++      </QueryClientProvider>
++    );
++    const view = render(wrapper(items));
++    fireEvent.change(screen.getByLabelText("Nome completo"), {
++      target: { value: "Pessoa Fictícia" },
++    });
++    fireEvent.change(screen.getByLabelText("Telefone com DDD"), {
++      target: { value: "11999990000" },
++    });
++    fireEvent.change(screen.getByLabelText("CEP", { exact: true }), {
++      target: { value: "06000003" },
++    });
++    await screen.findByText("Unidade Jardim Boa Vista");
++    fireEvent.change(screen.getByLabelText("Número"), { target: { value: "12" } });
++    fireEvent.change(screen.getByLabelText(/Complemento/), { target: { value: "Bloco B" } });
++    fireEvent.click(screen.getByRole("button", { name: "Enviar pedido no WhatsApp" }));
++    await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
++    expect(createOrder).toHaveBeenCalledWith(
++      "create_shop_order",
++      expect.objectContaining({
++        p_address: "Rua Teste, 12 · Bloco B · Bairro Teste · Osasco - SP · CEP 06000-003",
++      }),
++    );
++    const url = new URL(String(replace.mock.calls[0]?.[0]));
++    expect(url.pathname).toBe("/5511900000002");
++    expect(url.searchParams.get("text")).toBe("OLÁ, JÁ FIZ MEU PEDIDO, CÓDIGO: 0042");
++    view.unmount();
++    render(wrapper([]));
++    expect(screen.getByRole("link", { name: "Abrir WhatsApp" })).toHaveAttribute("href", url.href);
++    client.clear();
++  });
++});

@@ -10,6 +10,7 @@ node scripts/mobile-polish.mjs
 node scripts/floating-cart.mjs
 git apply crazy-orders-checkout.patch
 git apply black-volt-storefront.patch
+git apply crazy-delivery-stores.patch
 
 logo_dir="public/__l5e/assets-v1/4899a810-cb7b-4859-a781-ea2a51845235"
 mkdir -p "$logo_dir"
