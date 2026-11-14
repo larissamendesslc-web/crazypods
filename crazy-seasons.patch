@@ -1,0 +1,960 @@
+diff --git a/src/components/admin-settings.tsx b/src/components/admin-settings.tsx
+index a560196..19f9edd 100644
+--- a/src/components/admin-settings.tsx
++++ b/src/components/admin-settings.tsx
+@@ -1,9 +1,9 @@
+-import { useEffect, useState } from "react";
++import { useState } from "react";
+ import { useQuery, useQueryClient } from "@tanstack/react-query";
+ import { toast } from "sonner";
+ import { Upload, X } from "lucide-react";
+-import { supabase } from "@/integrations/supabase/client";
+-import { settingsQuery, DEFAULT_SETTINGS, type SiteSettings } from "@/lib/settings";
++import { SeasonalThemeSettings } from "@/components/seasonal-theme-settings";
++import { settingsQuery, saveSettingsPatch, DEFAULT_SETTINGS, type SiteSettings } from "@/lib/settings";
+ import { productsQuery } from "@/lib/products";
+ import { uploadImage } from "@/lib/upload";
+ import heroDefault from "@/assets/dinner-lady-luma-40k-prata.jpg";
+@@ -12,22 +12,29 @@ const input = "mt-1 w-full rounded-xl border border-input bg-secondary px-4 py-2
+ 
+ export function AdminSettings() {
+   const qc = useQueryClient();
+-  const { data } = useQuery(settingsQuery);
++  const { data, isPending, isError } = useQuery(settingsQuery);
+   const { data: products = [] } = useQuery(productsQuery);
+-  const [s, setS] = useState<SiteSettings>(DEFAULT_SETTINGS);
++  const [edits, setEdits] = useState<Partial<Omit<SiteSettings, "season">>>({});
++  const s = { ...DEFAULT_SETTINGS, ...data, ...edits };
+   const [saving, setSaving] = useState(false);
+   const [uploading, setUploading] = useState(false);
+-  useEffect(() => { if (data) setS(data); }, [data]);
+-  const set = <K extends keyof SiteSettings>(k: K, v: SiteSettings[K]) => setS((x) => ({ ...x, [k]: v }));
++  const set = <K extends keyof typeof edits>(k: K, v: SiteSettings[K]) => setEdits((x) => ({ ...x, [k]: v }));
+ 
+   const save = async () => {
+     if (s.whatsapp.replace(/\D/g, "").length < 12) { toast.error("WhatsApp deve ter DDI + DDD + número, ex: 5511986825360"); return; }
+     setSaving(true);
+-    const { error } = await supabase.from("site_settings").upsert({ id: 1, data: s, updated_at: new Date().toISOString() });
+-    setSaving(false);
+-    if (error) { toast.error("Não foi possível salvar."); return; }
+-    toast.success("Site atualizado!");
+-    qc.invalidateQueries({ queryKey: ["site_settings"] });
++    try {
++      await saveSettingsPatch(edits);
++      await qc.invalidateQueries({ queryKey: settingsQuery.queryKey });
++      setEdits((current) => Object.fromEntries(Object.entries(current).filter(
++        ([key, value]) => value !== edits[key as keyof typeof edits],
++      )));
++      toast.success("Site atualizado!");
++    } catch {
++      toast.error("Não foi possível salvar.");
++    } finally {
++      setSaving(false);
++    }
+   };
+   const uploadHero = async (f: File) => {
+     setUploading(true);
+@@ -40,6 +47,7 @@ export function AdminSettings() {
+ 
+   return (
+     <div className="space-y-6">
++      <SeasonalThemeSettings />
+       <section className={card}>
+         <h2 className="font-display text-xl font-bold">Banner principal</h2>
+         <p className="text-sm text-muted-foreground">Imagem grande do topo da loja. Tamanho ideal: 1672 × 940 px.</p>
+@@ -94,7 +102,7 @@ export function AdminSettings() {
+       </section>
+ 
+       <div className="sticky bottom-4 flex justify-end">
+-        <button disabled={saving || uploading} onClick={save} className="rounded-full bg-gradient-primary px-10 py-4 font-bold text-primary-foreground shadow-glow disabled:opacity-60">{saving ? "Salvando..." : "Salvar alterações do site"}</button>
++        <button disabled={saving || uploading || isPending || isError} onClick={save} className="rounded-full bg-gradient-primary px-10 py-4 font-bold text-primary-foreground shadow-glow disabled:opacity-60">{saving ? "Salvando..." : "Salvar alterações do site"}</button>
+       </div>
+     </div>
+   );
+diff --git a/src/components/christmas-theme.css b/src/components/christmas-theme.css
+new file mode 100644
+index 0000000..d2808c5
+--- /dev/null
++++ b/src/components/christmas-theme.css
+@@ -0,0 +1,191 @@
++.black-ice-snow {
++  position: absolute;
++  inset: 0;
++  overflow: hidden;
++  pointer-events: none;
++  contain: strict;
++  z-index: 25;
++}
++
++.black-ice-store-snow {
++  position: fixed;
++  inset: 0;
++  z-index: 30;
++  pointer-events: none;
++}
++
++.black-ice-snow i {
++  position: absolute;
++  top: 0;
++  left: var(--snow-x);
++  width: var(--snow-size);
++  height: var(--snow-size);
++  border-radius: 50%;
++  background: #f6f2ff;
++  opacity: var(--snow-opacity);
++  animation: black-ice-fall var(--snow-duration) var(--snow-delay) linear infinite;
++}
++
++@keyframes black-ice-fall {
++  from {
++    transform: translate3d(0, -12px, 0);
++  }
++  50% {
++    transform: translate3d(var(--snow-drift), calc(50cqh + 4px), 0);
++  }
++  to {
++    transform: translate3d(0, calc(100cqh + 12px), 0);
++  }
++}
++
++.black-ice-snow {
++  container-type: size;
++}
++.black-ice-snow[data-paused="true"] i {
++  animation-play-state: paused;
++}
++
++.black-ice-hat {
++  position: absolute;
++  z-index: 1;
++  pointer-events: none;
++  filter: drop-shadow(0 2px 3px #160d24a0);
++  width: 39px;
++  height: auto;
++}
++.black-ice-hat--logo {
++  top: -10px;
++  left: -8px;
++  transform: rotate(-17deg);
++}
++.black-ice-hat--whatsapp {
++  bottom: 62%;
++  right: 38%;
++  transform: rotate(-19deg);
++}
++
++.black-ice-lights {
++  position: absolute;
++  inset: auto 0 0;
++  height: 1px;
++  display: flex;
++  justify-content: space-around;
++  pointer-events: none;
++  background: linear-gradient(90deg, transparent, #b5a4e37d, transparent);
++}
++.black-ice-lights i {
++  color: #e9edff;
++  width: 3px;
++  height: 3px;
++  border-radius: 50%;
++  margin-top: -1px;
++  background: currentColor;
++  box-shadow: 0 0 6px 1px currentColor;
++  animation: black-ice-twinkle 5s ease-in-out infinite alternate;
++}
++.black-ice-lights i:nth-child(3n) {
++  color: #9a79ee;
++  animation-delay: -2s;
++}
++.black-ice-lights i:nth-child(4n) {
++  animation-delay: -3.5s;
++}
++@keyframes black-ice-twinkle {
++  from {
++    opacity: 0.38;
++  }
++  to {
++    opacity: 0.78;
++  }
++}
++
++.black-ice-trim .store-header {
++  border-bottom-color: #aba6d54d;
++  box-shadow: inset 0 -8px 24px -16px #a9b8ff65;
++}
++
++.black-ice-hero,
++.black-ice-trim footer,
++.black-ice-preview-stage {
++  position: relative;
++}
++.black-ice-trim .black-ice-hero::after,
++.black-ice-trim footer::before {
++  content: "";
++  position: absolute;
++  inset: 0;
++  pointer-events: none;
++  box-shadow: inset 0 0 30px -17px #beb4ff9c;
++}
++.black-ice-crystals {
++  position: absolute;
++  inset: 0;
++  pointer-events: none;
++  color: #e2e6ff;
++}
++.black-ice-crystals svg {
++  position: absolute;
++  width: clamp(15px, 3vw, 36px);
++  height: auto;
++  opacity: 0.6;
++  filter: drop-shadow(0 0 6px #b4a0f48a);
++}
++.black-ice-crystals svg:nth-child(1) {
++  top: 0.5rem;
++  left: 0.6rem;
++}
++.black-ice-crystals svg:nth-child(2) {
++  top: 0.8rem;
++  right: 0.75rem;
++}
++.black-ice-crystals svg:nth-child(3) {
++  bottom: 0.75rem;
++  right: 1rem;
++  width: 20px;
++}
++.black-ice-greeting {
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  gap: 0.35rem;
++  margin-top: 0.25rem;
++  color: #e4dcfa;
++  font-size: 0.75rem;
++}
++.black-ice-greeting svg {
++  width: 0.85rem;
++  height: 0.85rem;
++}
++
++@media (max-width: 640px), (pointer: coarse) {
++  .black-ice-snow i:nth-child(2n) {
++    display: none;
++  }
++  .black-ice-lights i:nth-child(2n) {
++    display: none;
++  }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .black-ice-snow {
++    display: none;
++  }
++  .black-ice-lights i {
++    animation: none;
++  }
++}
++
++.black-ice-hero > .black-ice-crystals {
++  display: none;
++}
++.black-ice-trim .black-ice-hero > .black-ice-crystals {
++  display: block;
++}
++.black-ice-trim .store-section {
++  box-shadow: inset 0 1px #c3b9ec25;
++}
++.black-ice-trim .chrome-band > .black-ice-greeting {
++  position: absolute;
++  inset: auto 0 1rem;
++  margin-top: 0;
++}
+diff --git a/src/components/christmas-theme.tsx b/src/components/christmas-theme.tsx
+new file mode 100644
+index 0000000..6c0451c
+--- /dev/null
++++ b/src/components/christmas-theme.tsx
+@@ -0,0 +1,123 @@
++import { useEffect, useId, useState, type CSSProperties } from "react";
++import { Snowflake, Sparkles } from "lucide-react";
++import { seasonIsActive, type SeasonSettings } from "@/lib/seasons";
++import "./christmas-theme.css";
++
++const snowCount = { soft: 20, medium: 34, strong: 52 };
++
++export function useChristmasTheme(season: SeasonSettings, available: boolean) {
++  const [now, setNow] = useState<number>();
++  useEffect(() => {
++    let timer: ReturnType<typeof setTimeout>;
++    function syncClock() {
++      clearTimeout(timer);
++      const time = Date.now();
++      setNow(time);
++      const next = [season.start, season.end]
++        .map((date) => (date ? Date.parse(date) : Infinity))
++        .filter((date) => date > time);
++      if (next.length)
++        timer = setTimeout(syncClock, Math.min(2_147_483_647, Math.min(...next) - time));
++    }
++    syncClock();
++    document.addEventListener("visibilitychange", syncClock);
++    return () => {
++      clearTimeout(timer);
++      document.removeEventListener("visibilitychange", syncClock);
++    };
++  }, [season.start, season.end]);
++  return available && now !== undefined && seasonIsActive(season, now);
++}
++
++export function SnowfallEffect({ intensity }: { intensity: SeasonSettings["snow"] }) {
++  const [visible, setVisible] = useState(true);
++  useEffect(() => {
++    const sync = () => setVisible(!document.hidden);
++    sync();
++    document.addEventListener("visibilitychange", sync);
++    return () => document.removeEventListener("visibilitychange", sync);
++  }, []);
++
++  return (
++    <div aria-hidden="true" className="black-ice-snow" data-paused={!visible}>
++      {Array.from({ length: snowCount[intensity] }, (_, index) => {
++        const unit = ((index * 67) % 101) / 100;
++        const duration = 8 + unit * 14;
++        return (
++          <i
++            key={index}
++            style={
++              {
++                "--snow-x": `${(index * 37 + 8) % 101}%`,
++                "--snow-size": `${1.5 + unit * 4}px`,
++                "--snow-drift": `${(index % 2 ? 1 : -1) * (13 + 34 * unit)}px`,
++                "--snow-opacity": 0.2 + unit * 0.62,
++                "--snow-duration": `${duration}s`,
++                "--snow-delay": `-${(duration * ((index * 53) % 97)) / 97}s`,
++              } as CSSProperties
++            }
++          />
++        );
++      })}
++    </div>
++  );
++}
++
++export function ChristmasHat({ target }: { target: "whatsapp" | "logo" }) {
++  const gradient = useId();
++  return (
++    <svg
++      className={`black-ice-hat black-ice-hat--${target}`}
++      aria-hidden="true"
++      focusable="false"
++      viewBox="0 0 60 45"
++    >
++      <defs>
++        <linearGradient id={gradient} x2="1" y2="1">
++          <stop stopColor="#f4edff" />
++          <stop offset=".32" stopColor="#ab96da" />
++          <stop offset="1" stopColor="#4b376d" />
++        </linearGradient>
++      </defs>
++      <path
++        d="M11 32C18 25 17 10 28 6s19 4 22 14l-9 2-7-4 6 15Z"
++        fill={`url(#${gradient})`}
++        stroke="#ded8f4"
++      />
++      <path
++        d="M12 30c10-3 20-4 28 0 3 2 4 7 0 9-8-2-18-2-27 1-5-1-6-7-1-10Z"
++        fill="#f4f3fa"
++        stroke="#b5adcc"
++      />
++      <circle cx="49" cy="21" r="6" fill="#f4f3fa" stroke="#b5adcc" />
++    </svg>
++  );
++}
++
++export function ChristmasHeaderLights() {
++  return (
++    <div className="black-ice-lights" aria-hidden="true">
++      {Array.from({ length: 32 }, (_, index) => (
++        <i key={index} />
++      ))}
++    </div>
++  );
++}
++
++export function ChristmasCrystals() {
++  return (
++    <span aria-hidden="true" className="black-ice-crystals">
++      <Snowflake />
++      <Sparkles />
++      <Snowflake />
++    </span>
++  );
++}
++
++export function ChristmasFooterMessage() {
++  return (
++    <p className="black-ice-greeting">
++      <Snowflake aria-hidden="true" /> Boas festas, da equipe Crazy Pods.
++    </p>
++  );
++}
+diff --git a/src/components/seasonal-theme-settings.tsx b/src/components/seasonal-theme-settings.tsx
+new file mode 100644
+index 0000000..33175d2
+--- /dev/null
++++ b/src/components/seasonal-theme-settings.tsx
+@@ -0,0 +1,232 @@
++import { useState } from "react";
++import { useQuery, useQueryClient } from "@tanstack/react-query";
++import { Eye, Snowflake } from "lucide-react";
++import logo from "@/assets/crazy-pods-logo.png.asset.json";
++import { Button } from "@/components/ui/button";
++import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
++import { Switch } from "@/components/ui/switch";
++import {
++  ChristmasCrystals,
++  ChristmasFooterMessage,
++  ChristmasHat,
++  ChristmasHeaderLights,
++  SnowfallEffect,
++} from "@/components/christmas-theme";
++import { WhatsAppIcon } from "@/components/shop";
++import {
++  DEFAULT_SEASON,
++  fromLocalSchedule,
++  toLocalSchedule,
++  type SeasonSettings,
++} from "@/lib/seasons";
++import { saveSeason, settingsQuery } from "@/lib/settings";
++
++const toggles = [
++  ["enabled", "Modo Natal"],
++  ["whatsappHat", "Gorro do WhatsApp"],
++  ["logoHat", "Decoração da logo"],
++  ["lights", "Luzes natalinas"],
++  ["trim", "Decoração do cabeçalho, banner e rodapé"],
++] as const;
++
++const fieldClass =
++  "mt-1 block w-full min-w-0 rounded-lg border border-input bg-secondary px-3 py-2 text-sm [color-scheme:dark]";
++
++export function SeasonalThemeSettings() {
++  const query = useQuery(settingsQuery);
++  const client = useQueryClient();
++  const [draft, setDraft] = useState<SeasonSettings>();
++  const [preview, setPreview] = useState(false);
++  const [saving, setSaving] = useState(false);
++  const [status, setStatus] = useState("");
++  const [error, setError] = useState("");
++  const season = draft ?? query.data?.season ?? DEFAULT_SEASON;
++  const invalidRange = !!(
++    season.start &&
++    season.end &&
++    Date.parse(season.start) >= Date.parse(season.end)
++  );
++
++  function set<K extends keyof SeasonSettings>(key: K, value: SeasonSettings[K]) {
++    setDraft({ ...season, [key]: value });
++    setStatus("");
++    setError("");
++  }
++
++  async function save(value: SeasonSettings) {
++    setStatus("");
++    setError("");
++    setSaving(true);
++    try {
++      await saveSeason(value);
++      client.setQueryData(
++        settingsQuery.queryKey,
++        (previous) => previous && { ...previous, season: value },
++      );
++      setDraft(undefined);
++      setStatus(value.enabled ? "Aparência sazonal salva." : "Aparência original restaurada.");
++      void client.invalidateQueries({ queryKey: settingsQuery.queryKey });
++    } catch {
++      setError("Não foi possível salvar. Confira a conexão e as permissões da sua conta.");
++    } finally {
++      setSaving(false);
++    }
++  }
++
++  return (
++    <section
++      className="rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-400/10 to-background p-5 sm:p-6"
++      aria-labelledby="seasons-heading"
++    >
++      <div className="flex items-center gap-3">
++        <Snowflake aria-hidden="true" className="size-8 shrink-0 text-violet-200" />
++        <div>
++          <p className="text-xs text-muted-foreground">Aparência sazonal</p>
++          <h2 id="seasons-heading" className="font-display text-xl font-bold">
++            CRAZY SEASONS
++          </h2>
++          <p className="text-sm text-violet-200">Christmas Edition — Black Ice</p>
++        </div>
++      </div>
++      {query.isPending && (
++        <p role="status" className="mt-4 text-sm">
++          Carregando configuração…
++        </p>
++      )}
++      {query.isError && (
++        <p role="alert" className="mt-4 text-sm text-red-300">
++          Não foi possível consultar a configuração.{" "}
++          <button type="button" className="underline" onClick={() => void query.refetch()}>
++            Tentar novamente
++          </button>
++        </p>
++      )}
++      <fieldset
++        className="mt-4 grid gap-3 sm:grid-cols-2"
++        disabled={saving || query.isPending || query.isError}
++      >
++        {toggles.map(([key, label]) => (
++          <label
++            key={key}
++            className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
++          >
++            {label}
++            <Switch
++              className="shrink-0"
++              checked={season[key]}
++              onCheckedChange={(value) => set(key, value)}
++            />
++          </label>
++        ))}
++        <label className="text-sm">
++          Intensidade da neve
++          <select
++            className={fieldClass}
++            value={season.snow}
++            onChange={(e) => set("snow", e.target.value as SeasonSettings["snow"])}
++          >
++            <option value="soft">Suave</option>
++            <option value="medium">Média</option>
++            <option value="strong">Intensa</option>
++          </select>
++        </label>
++        <label className="min-w-0 text-sm">
++          Início
++          <input
++            className={fieldClass}
++            type="datetime-local"
++            value={toLocalSchedule(season.start)}
++            onChange={(e) => set("start", fromLocalSchedule(e.target.value))}
++          />
++        </label>
++        <label className="min-w-0 text-sm">
++          Término
++          <input
++            className={fieldClass}
++            type="datetime-local"
++            value={toLocalSchedule(season.end)}
++            onChange={(e) => set("end", fromLocalSchedule(e.target.value))}
++          />
++        </label>
++      </fieldset>
++      <p className="mt-2 text-xs text-muted-foreground">
++        Horário de Brasília. Com o modo ativado, datas vazias deixam o tema disponível imediatamente
++        e sem término.
++      </p>
++      {invalidRange && (
++        <p role="alert" className="mt-2 text-sm text-red-300">
++          O término precisa ser posterior ao início.
++        </p>
++      )}
++      {error && (
++        <p role="alert" className="mt-2 text-sm text-red-300">
++          {error}
++        </p>
++      )}
++      {status && (
++        <p role="status" className="mt-2 text-sm text-violet-200">
++          {status}
++        </p>
++      )}
++      <div className="mt-4 flex flex-wrap gap-2">
++        <Button type="button" variant="outline" onClick={() => setPreview(true)}>
++          <Eye /> Pré-visualizar
++        </Button>
++        <Button
++          type="button"
++          disabled={saving || query.isPending || query.isError || invalidRange}
++          onClick={() => void save(season)}
++        >
++          {saving ? "Salvando…" : "Salvar aparência"}
++        </Button>
++        <Button
++          type="button"
++          variant="ghost"
++          disabled={saving || query.isPending || query.isError}
++          onClick={() => void save(DEFAULT_SEASON)}
++        >
++          Restaurar aparência original
++        </Button>
++      </div>
++      <Dialog open={preview} onOpenChange={setPreview}>
++        <DialogContent className="w-[calc(100%-2rem)] max-w-lg">
++          <DialogTitle>Prévia Black Ice</DialogTitle>
++          <DialogDescription>
++            A amostra mostra o estado do rascunho sem aplicar as datas agendadas.
++          </DialogDescription>
++          <div
++            className={`black-ice-preview-stage overflow-hidden rounded-xl border border-border bg-background${season.enabled && season.trim ? " black-ice-trim" : ""}`}
++          >
++            <div className="store-header relative flex items-center gap-3 p-4">
++              <span className="relative">
++                <img src={logo.url} alt="" className="size-11 rounded-lg" />
++                {season.enabled && season.logoHat && <ChristmasHat target="logo" />}
++              </span>
++              <strong className="font-display">CRAZY PODS</strong>
++              {season.enabled && season.lights && <ChristmasHeaderLights />}
++            </div>
++            <div className="black-ice-hero grid h-40 place-items-center bg-gradient-to-br from-slate-900 via-background to-violet-950">
++              <span className="font-display text-xl tracking-[.25em] text-violet-100">
++                BLACK ICE
++              </span>
++              <ChristmasCrystals />
++              <span
++                aria-hidden="true"
++                className="absolute bottom-3 right-4 grid size-11 place-items-center rounded-full bg-whatsapp text-white"
++              >
++                <WhatsAppIcon className="size-5" />
++                {season.enabled && season.whatsappHat && <ChristmasHat target="whatsapp" />}
++              </span>
++            </div>
++            {season.enabled && season.trim && (
++              <footer className="p-3">
++                <ChristmasFooterMessage />
++              </footer>
++            )}
++            {season.enabled && <SnowfallEffect intensity={season.snow} />}
++          </div>
++        </DialogContent>
++      </Dialog>
++    </section>
++  );
++}
+diff --git a/src/components/shop.tsx b/src/components/shop.tsx
+index 8884868..039f175 100644
+--- a/src/components/shop.tsx
++++ b/src/components/shop.tsx
+@@ -1,4 +1,12 @@
+ import logo from "@/assets/crazy-pods-logo.png.asset.json";
++import {
++  ChristmasCrystals,
++  ChristmasFooterMessage,
++  ChristmasHat,
++  ChristmasHeaderLights,
++  SnowfallEffect,
++  useChristmasTheme,
++} from "@/components/christmas-theme";
+ import { AgeGate } from "@/components/age-gate";
+ import { photoStyle } from "@/lib/photo-layout";
+ import { Link, useNavigate } from "@tanstack/react-router";
+@@ -136,9 +144,9 @@ export function WhatsAppIcon({ className }: { className?: string }) {
+ }
+ 
+ export function useSettings() {
+-  const { data } = useQuery(settingsQuery);
++  const { data, isError } = useQuery(settingsQuery);
+   const s = data ?? DEFAULT_SETTINGS;
+-  return { s, WA_NUM: waBase(s), WA: waBase(s) + encodeURIComponent(s.whatsappMessage) };
++  return { s, settingsAvailable: !!data && !isError, WA_NUM: waBase(s), WA: waBase(s) + encodeURIComponent(s.whatsappMessage) };
+ }
+ const waOrder = (WA_NUM: string, p: Product, flavor?: string) =>
+   WA_NUM +
+@@ -202,7 +210,10 @@ export function ShopShell({ children }: { children: ReactNode }) {
+ 
+ function ShopContent({ children }: { children: ReactNode }) {
+   const navigate = useNavigate();
+-  const { s: settings, WA, WA_NUM } = useSettings();
++  const { s: settings, settingsAvailable, WA, WA_NUM } = useSettings();
++  const season = settings.season ?? DEFAULT_SETTINGS.season;
++  const christmas = useChristmasTheme(season, settingsAvailable);
++  const trim = christmas && season.trim;
+   const [items, setItems] = useState<CartItem[]>([]);
+   const [cartOpen, setCartOpen] = useState(false);
+   const [open, setOpen] = useState<{ p: Product; i: number } | null>(null);
+@@ -253,7 +264,8 @@ function ShopContent({ children }: { children: ReactNode }) {
+ 
+   return (
+     <ShopCtx.Provider value={{ openPod }}>
+-      <div className="min-h-screen overflow-x-hidden">
++      <div className={`min-h-screen overflow-x-hidden${trim ? " black-ice-trim" : ""}`}>
++        {christmas && <div className="black-ice-store-snow"><SnowfallEffect intensity={season.snow} /></div>}
+         <div className="border-b border-border bg-muted/50 text-xs">
+           <div className="flex overflow-hidden whitespace-nowrap py-2">
+             <div className="flex animate-marquee gap-12 pr-12">
+@@ -282,7 +294,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+             <Link
+               to="/"
+               aria-label="Crazy Pods — Início"
+-              className="flex shrink-0 items-center gap-3"
++              className="relative flex shrink-0 items-center gap-3"
+             >
+               <img
+                 src={logo.url}
+@@ -291,6 +303,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+                 height={80}
+                 className="h-20 w-20 rounded-md border border-border object-cover"
+               />
++              {christmas && season.logoHat && <ChristmasHat target="logo" />}
+               <span className="hidden font-display text-sm font-bold xl:block">CRAZY PODS</span>
+             </Link>
+             <nav aria-label="Navegação principal" className="hidden items-center gap-1 md:flex">
+@@ -367,6 +380,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+               <ArrowUpRight />
+             </Button>
+           </form>
++          {christmas && season.lights && <ChristmasHeaderLights />}
+         </header>
+ 
+         <main>{children}</main>
+@@ -395,6 +409,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+             ))}
+           </div>
+           <p className="mt-4">Venda proibida para menores de 18 anos.</p>
++          {trim && <><ChristmasCrystals /><ChristmasFooterMessage /></>}
+         </footer>
+ 
+         <a
+@@ -405,6 +420,7 @@ function ShopContent({ children }: { children: ReactNode }) {
+           className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-whatsapp text-primary-foreground shadow-glow transition hover:scale-110"
+         >
+           <WhatsAppIcon className="h-7 w-7" />
++          {christmas && season.whatsappHat && <ChristmasHat target="whatsapp" />}
+         </a>
+ 
+         <Dialog
+diff --git a/src/lib/seasons.test.ts b/src/lib/seasons.test.ts
+new file mode 100644
+index 0000000..f746efc
+--- /dev/null
++++ b/src/lib/seasons.test.ts
+@@ -0,0 +1,36 @@
++import { describe, expect, it } from "vitest";
++import {
++  DEFAULT_SEASON,
++  fromLocalSchedule,
++  readSeason,
++  seasonIsActive,
++  toLocalSchedule,
++} from "./seasons";
++
++describe("Crazy Seasons", () => {
++  it("uses the original appearance for missing and invalid configuration", () => {
++    expect(readSeason(undefined)).toEqual(DEFAULT_SEASON);
++    expect(readSeason({ enabled: true, snow: "broken" })).toEqual(DEFAULT_SEASON);
++    expect(
++      readSeason({ enabled: true, start: "2026-12-24T00:00:00Z", end: "2026-12-23T00:00:00Z" }),
++    ).toEqual(DEFAULT_SEASON);
++  });
++
++  it("includes the scheduled start and excludes the end", () => {
++    const start = "2026-12-24T03:00:00Z";
++    const end = "2026-12-26T03:00:00Z";
++    const config = readSeason({ enabled: true, start, end });
++    expect(seasonIsActive(config, Date.parse(start) - 1)).toBe(false);
++    expect(seasonIsActive(config, Date.parse(start))).toBe(true);
++    expect(seasonIsActive(config, Date.parse(end) - 1)).toBe(true);
++    expect(seasonIsActive(config, Date.parse(end))).toBe(false);
++    expect(seasonIsActive({ ...config, enabled: false }, Date.parse(start))).toBe(false);
++  });
++
++  it("stores Brasília dates in UTC and displays them in Brasília", () => {
++    const local = "2026-12-24T00:00";
++    expect(fromLocalSchedule(local)).toBe("2026-12-24T03:00:00.000Z");
++    expect(toLocalSchedule(fromLocalSchedule(local))).toBe(local);
++    expect(fromLocalSchedule("")).toBeNull();
++  });
++});
+diff --git a/src/lib/seasons.ts b/src/lib/seasons.ts
+new file mode 100644
+index 0000000..0d6b4f2
+--- /dev/null
++++ b/src/lib/seasons.ts
+@@ -0,0 +1,53 @@
++import { z } from "zod";
++
++export const SNOW_LEVELS = ["soft", "medium", "strong"] as const;
++export const SAO_PAULO_OFFSET = "-03:00";
++
++const seasonSchema = z
++  .object({
++    enabled: z.boolean(),
++    snow: z.enum(SNOW_LEVELS),
++    whatsappHat: z.boolean(),
++    logoHat: z.boolean(),
++    lights: z.boolean(),
++    trim: z.boolean(),
++    start: z.string().datetime().nullable(),
++    end: z.string().datetime().nullable(),
++  })
++  .refine(({ start, end }) => !start || !end || Date.parse(start) < Date.parse(end));
++
++export type SeasonSettings = z.infer<typeof seasonSchema>;
++
++export const DEFAULT_SEASON: SeasonSettings = {
++  enabled: false,
++  snow: "soft",
++  whatsappHat: true,
++  logoHat: true,
++  lights: true,
++  trim: true,
++  start: null,
++  end: null,
++};
++
++export function readSeason(value: unknown): SeasonSettings {
++  if (!value || typeof value !== "object") return DEFAULT_SEASON;
++  const parsed = seasonSchema.safeParse({ ...DEFAULT_SEASON, ...value });
++  return parsed.success ? parsed.data : DEFAULT_SEASON;
++}
++
++export function seasonIsActive(season: SeasonSettings, now: number) {
++  return (
++    season.enabled &&
++    (!season.start || now >= Date.parse(season.start)) &&
++    (!season.end || now < Date.parse(season.end))
++  );
++}
++
++export function fromLocalSchedule(value: string) {
++  if (!value) return null;
++  return new Date(`${value}:00${SAO_PAULO_OFFSET}`).toISOString();
++}
++
++export function toLocalSchedule(value: string | null) {
++  return value ? new Date(Date.parse(value) - 3 * 3600000).toISOString().slice(0, 16) : "";
++}
+diff --git a/src/lib/settings.ts b/src/lib/settings.ts
+index 960c3fd..455149b 100644
+--- a/src/lib/settings.ts
++++ b/src/lib/settings.ts
+@@ -1,3 +1,5 @@
++import type { Json } from "@/integrations/supabase/types";
++import { DEFAULT_SEASON, readSeason, type SeasonSettings } from "./seasons";
+ import { queryOptions } from "@tanstack/react-query";
+ import { supabase } from "@/integrations/supabase/client";
+ 
+@@ -10,25 +12,90 @@ export type SiteSettings = {
+   ctaTitle: string;
+   ctaText: string;
+   featuredIds: string[];
++  season: SeasonSettings;
+ };
+ 
+ export const DEFAULT_SETTINGS: SiteSettings = {
+   heroImage: null,
+   heroProductId: null,
+-  marquee: ["Entrega rápida em Osasco e região de SP", "Pods 100% originais", "+5.000 clientes satisfeitos", "Pix com desconto"],
++  marquee: [
++    "Entrega rápida em Osasco e região de SP",
++    "Pods 100% originais",
++    "+5.000 clientes satisfeitos",
++    "Pix com desconto",
++  ],
+   whatsapp: "5511986825360",
+   whatsappMessage: "Olá! Vim pelo site da Crazy Pods e quero comprar um pod.",
+   ctaTitle: "Não achou seu sabor?",
+   ctaText: "Fala com a gente no WhatsApp e a gente encontra o pod perfeito pra você.",
+   featuredIds: [],
++  season: DEFAULT_SEASON,
+ };
+ 
++// The Vercel preview can save and exercise scheduling without sharing the live theme.
++const seasonKey =
++  import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] === "1" ? "crazy_seasons_preview" : "crazy_seasons";
++
++function settingsObject(value: Json | undefined): Record<string, Json | undefined> {
++  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
++}
++
++async function readSettings() {
++  const { data, error } = await supabase
++    .from("site_settings")
++    .select("data, updated_at")
++    .eq("id", 1)
++    .maybeSingle();
++  if (error) throw error;
++  return data;
++}
++
+ export const settingsQuery = queryOptions({
+   queryKey: ["site_settings"],
++  staleTime: 15_000,
++  refetchInterval: 30_000,
++  retry: false,
+   queryFn: async (): Promise<SiteSettings> => {
+-    const { data } = await supabase.from("site_settings").select("data").eq("id", 1).maybeSingle();
+-    return { ...DEFAULT_SETTINGS, ...((data?.data as Partial<SiteSettings>) ?? {}) };
++    const row = await readSettings();
++    const raw = settingsObject(row?.data);
++    return {
++      ...DEFAULT_SETTINGS,
++      ...(raw as Partial<SiteSettings>),
++      season: readSeason(raw[seasonKey]),
++    };
+   },
+ });
+ 
++export function saveSeason(season: SeasonSettings) {
++  return saveSettingsPatch({ [seasonKey]: season });
++}
++
++export async function saveSettingsPatch(patch: Record<string, Json | undefined>) {
++  // Retry a concurrent edit against the newest document so unrelated keys survive.
++  for (let attempt = 0; attempt < 3; attempt++) {
++    const row = await readSettings();
++    const data = { ...settingsObject(row?.data), ...patch };
++    if (!row) {
++      const { error } = await supabase.from("site_settings").insert({ id: 1, data });
++      if (!error) return;
++      if (error.code === "23505") continue;
++      throw error;
++    }
++
++    const updatedAt = new Date(Math.max(Date.now(), Date.parse(row.updated_at) + 1)).toISOString();
++    const { data: updated, error } = await supabase
++      .from("site_settings")
++      .update({ data, updated_at: updatedAt })
++      .eq("id", 1)
++      .eq("updated_at", row.updated_at)
++      .select("id")
++      .maybeSingle();
++    if (error) throw error;
++    if (updated) return;
++    const current = await readSettings();
++    if (current?.updated_at === row.updated_at) throw new Error("Permissão de gravação negada.");
++  }
++  throw new Error("Configurações alteradas por outra sessão. Tente salvar novamente.");
++}
++
+ export const waBase = (s: SiteSettings) => `https://wa.me/${s.whatsapp.replace(/\D/g, "")}?text=`;
+diff --git a/src/routes/index.tsx b/src/routes/index.tsx
+index 8dcc5a6..bc5ecda 100644
+--- a/src/routes/index.tsx
++++ b/src/routes/index.tsx
+@@ -1,3 +1,4 @@
++import { ChristmasCrystals } from "@/components/christmas-theme";
+ import { createFileRoute, Link } from "@tanstack/react-router";
+ import { useEffect, useState } from "react";
+ import {
+@@ -85,7 +86,7 @@ function Home() {
+   };
+   return (
+     <>
+-      <section className="relative overflow-hidden">
++      <section className="black-ice-hero relative overflow-hidden">
+         <h1 className="sr-only">Crazy Pods — escolha seu pod</h1>
+         <Button
+           variant="ghost"
+@@ -102,6 +103,7 @@ function Home() {
+             className="mx-auto block h-auto max-h-[680px] w-full object-contain"
+           />
+         </Button>
++        <ChristmasCrystals />
+       </section>
+       <section className="chrome-band">
+         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-5 gap-y-4 px-5 py-5 md:grid-cols-4">
