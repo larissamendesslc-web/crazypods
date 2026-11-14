@@ -88,3 +88,33 @@ export function calculateDeliveryQuote(
   const fee = free ? 0 : money(band.fee);
   return { status: "ok", fee, total: money(subtotal + fee), band, free };
 }
+
+/**
+ * Read only validated demo settings. Corrupt or incompatible records fail
+ * closed to independent illustrative defaults for each location.
+ */
+export function readDeliveryDemo(value: unknown): DeliveryStudioConfig {
+  const raw = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
+  const asPolicy = (id: StoreKey): DeliveryPolicy => {
+    const candidate = raw[id];
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate))
+      return { ...exampleDeliveryConfig[id], bands: exampleDeliveryConfig[id].bands.map(b => ({ ...b })), paymentDemos: [...exampleDeliveryConfig[id].paymentDemos] };
+    const p = candidate as Partial<DeliveryPolicy>;
+    if (typeof p.enabled !== "boolean" || typeof p.maxDistanceKm !== "number" ||
+      !(p.freeAbove === null || typeof p.freeAbove === "number") ||
+      !Array.isArray(p.bands) || !Array.isArray(p.paymentDemos) ||
+      p.bands.some(b => !b || typeof b.upToKm !== "number" || typeof b.fee !== "number") ||
+      validateDeliveryPolicy(p as DeliveryPolicy) !== null) {
+      return { ...exampleDeliveryConfig[id], bands: exampleDeliveryConfig[id].bands.map(b => ({ ...b })), paymentDemos: [...exampleDeliveryConfig[id].paymentDemos] };
+    }
+    return {
+      enabled: p.enabled,
+      maxDistanceKm: p.maxDistanceKm,
+      freeAbove: p.freeAbove,
+      bands: p.bands.map(b => ({ upToKm: b.upToKm, fee: b.fee })),
+      paymentDemos: [...p.paymentDemos],
+    };
+  };
+  return { quitauna: asPolicy("quitauna"), jardimBoaVista: asPolicy("jardimBoaVista") };
+}
