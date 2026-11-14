@@ -337,7 +337,7 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
                 Dados OpenStreetMap / OSRM demonstrativo, sujeitos a indisponibilidade.
               </p>
               <div className="rounded-xl border border-violet-500/20 bg-card p-3">
-                {quote.status === "ok" ? (
+                {quote?.status === "ok" ? (
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-2 text-muted-foreground">
                       <span>Subtotal ({cartCount(items)})</span><span className="tabular-nums">{brlFmt(subtotal)}</span>
