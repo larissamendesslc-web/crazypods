@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { settingsQuery, saveDeliveryDemo } from "@/lib/settings";
 import { CheckCircle2, MapPin, Plus, RotateCcw, Settings2, Trash2, XCircle } from "lucide-react";
 import {
   calculateDeliveryQuote,
@@ -11,7 +14,6 @@ import {
   type StoreKey,
 } from "@/lib/delivery-pricing";
 
-const draftKey = "crazy-delivery-studio-preview-v1";
 const storeLabels: Record<StoreKey, string> = {
   quitauna: "Quitaúna",
   jardimBoaVista: "Jardim Boa Vista",
@@ -40,51 +42,43 @@ const freshDraft = (): DeliveryStudioConfig => ({
   },
 });
 
-function usableDraft(value: unknown): value is DeliveryStudioConfig {
-  if (!value || typeof value !== "object") return false;
-  const obj = value as Record<string, unknown>;
-  return (["quitauna", "jardimBoaVista"] as const).every((id) => {
-    const item = obj[id] as Partial<DeliveryPolicy> | null;
-    return !!item &&
-      typeof item.enabled === "boolean" &&
-      typeof item.maxDistanceKm === "number" &&
-      (item.freeAbove === null || typeof item.freeAbove === "number") &&
-      Array.isArray(item.bands) &&
-      Array.isArray(item.paymentDemos) &&
-      item.bands.every((band) => band && typeof band.upToKm === "number" && typeof band.fee === "number") &&
-      validateDeliveryPolicy(item as DeliveryPolicy) === null;
-  });
-}
-
 export function DeliveryPricingStudio() {
   const [storeId, setStoreId] = useState<StoreKey>("quitauna");
   const [draft, setDraft] = useState<DeliveryStudioConfig>(freshDraft);
-  const [hydrated, setHydrated] = useState(false);
+  const { data: siteSettings, isPending: settingsPending } = useQuery(settingsQuery);
+  const qc = useQueryClient();
+  const loadedFromSettings = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [distance, setDistance] = useState("4.5");
   const [subtotal, setSubtotal] = useState("100");
   const [showJson, setShowJson] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.sessionStorage.getItem(draftKey);
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (usableDraft(parsed)) setDraft(parsed);
-      }
-    } catch {
-      // Storage blocked or draft invalid: continue with visible example values.
+    if (!loadedFromSettings.current && siteSettings) {
+      setDraft(siteSettings.deliveryPricingDemo);
+      loadedFromSettings.current = true;
     }
-    setHydrated(true);
-  }, []);
+  }, [siteSettings]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
-    } catch {
-      // The studio remains usable without browser storage.
+  async function saveDraft() {
+    const invalid = (["quitauna", "jardimBoaVista"] as const)
+      .map(id => validateDeliveryPolicy(draft[id]))
+      .find(Boolean);
+    if (invalid) {
+      toast.error(invalid);
+      return;
     }
-  }, [draft, hydrated]);
+    setSaving(true);
+    try {
+      await saveDeliveryDemo(draft);
+      await qc.invalidateQueries({ queryKey: settingsQuery.queryKey });
+      toast.success("Tarifas demonstrativas salvas. O simulador do carrinho já pode utilizá-las.");
+    } catch {
+      toast.error("Não foi possível salvar as tarifas. Revise suas permissões.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const policy = draft[storeId];
   const validation = validateDeliveryPolicy(policy);
@@ -299,17 +293,19 @@ export function DeliveryPricingStudio() {
           <div className="rounded-2xl border border-dashed border-violet-500/30 bg-violet-500/5 p-4">
             <h4 className="text-sm font-bold">Ambiente protegido</h4>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Alterações ficam apenas no rascunho desta aba. O botão geral de salvar configurações
-              não grava estas tarifas. Para ativar tarifas reais será necessária outra etapa de
-              integração e revisão de conformidade.
+              As alterações só serão disponibilizadas no simulador do carrinho depois de clicar em
+              Salvar regras. Nenhum pedido, pagamento real ou mensagem será criado.
             </p>
           </div>
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-        <p className="text-xs text-muted-foreground">Valores fictícios • Sem integração ao checkout</p>
+        <p className="text-xs text-muted-foreground">Tarifas fictícias • Integradas ao carrinho demonstrativo</p>
         <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={saving || settingsPending} className={buttonClass + " bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50"} onClick={() => void saveDraft()}>
+            {saving ? "Salvando..." : "Salvar regras do simulador"}
+          </button>
           <button type="button" className={buttonClass} onClick={resetDraft}>
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Restaurar exemplo
           </button>
