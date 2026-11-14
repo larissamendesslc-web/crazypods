@@ -42,15 +42,15 @@ function patchOnce(target, oldValue, newValue, label) {
 }
 settings = patchOnce(settings,
   'import { emptyStores,',
-  'import { exampleDeliveryConfig, readDeliveryDemo, type DeliveryStudioConfig } from "@/lib/delivery-pricing";\\nimport { emptyStores,',
+  'import { exampleDeliveryConfig, readDeliveryDemo, type DeliveryStudioConfig } from "@/lib/delivery-pricing";\nimport { emptyStores,',
   "settings pricing import");
 settings = patchOnce(settings,
   "  deliveryStores: Record<StoreId, DeliveryStore>;",
-  "  deliveryStores: Record<StoreId, DeliveryStore>;\\n  deliveryPricingDemo: DeliveryStudioConfig;",
+  "  deliveryStores: Record<StoreId, DeliveryStore>;\n  deliveryPricingDemo: DeliveryStudioConfig;",
   "settings pricing type");
 settings = patchOnce(settings,
   "  deliveryStores: emptyStores,",
-  "  deliveryStores: emptyStores,\\n  deliveryPricingDemo: exampleDeliveryConfig,",
+  "  deliveryStores: emptyStores,\n  deliveryPricingDemo: exampleDeliveryConfig,",
   "pricing default");
 settings = patchOnce(settings,
   '          .filter((key) => key in raw && key !== "season" && key !== "deliveryStores")',
@@ -58,17 +58,16 @@ settings = patchOnce(settings,
   "pricing guarded deserialization");
 settings = patchOnce(settings,
   '      deliveryStores: readDeliveryStores(raw["deliveryStores"]),',
-  '      deliveryStores: readDeliveryStores(raw["deliveryStores"]),\\n      deliveryPricingDemo: readDeliveryDemo(raw[deliveryDemoKey]),',
+  '      deliveryStores: readDeliveryStores(raw["deliveryStores"]),\n      deliveryPricingDemo: readDeliveryDemo(raw[deliveryDemoKey]),',
   "pricing loaded from settings");
 settings = patchOnce(settings,
   'export const settingsQuery = queryOptions({',
-  'const deliveryDemoKey = import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] === "1" ? "crazy_delivery_demo_preview_v1" : "crazy_delivery_demo_v1";\\n\\nexport const settingsQuery = queryOptions({',
+  'const deliveryDemoKey = import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] === "1" ? "crazy_delivery_demo_preview_v1" : "crazy_delivery_demo_v1";\n\nexport const settingsQuery = queryOptions({',
   "namespaced preview pricing");
 settings = patchOnce(settings,
   "export const waBase = ",
-  'export function saveDeliveryDemo(draft: DeliveryStudioConfig) {\\n  const payload = JSON.parse(JSON.stringify(draft)) as Json;\\n  return saveSettingsPatch({ [deliveryDemoKey]: payload });\\n}\\n\\nexport const waBase = ',
+  'export function saveDeliveryDemo(draft: DeliveryStudioConfig) {\n  const payload = JSON.parse(JSON.stringify(draft)) as Json;\n  return saveSettingsPatch({ [deliveryDemoKey]: payload });\n}\n\nexport const waBase = ',
   "save demo pricing");
-settings = settings.replaceAll("\\\\n", "\\n");
 writeFileSync(settingsPath, settings);
 
 /** Replace live order submission with a test-only cart quotation. */
@@ -80,9 +79,8 @@ shop = patchOnce(shop,
   "shop cart import");
 shop = patchOnce(shop,
   '              deliveryStores={settings.deliveryStores}',
-  '              deliveryStores={settings.deliveryStores}\\n              deliveryPolicy={settings.deliveryPricingDemo}',
+  '              deliveryStores={settings.deliveryStores}\n              deliveryPolicy={settings.deliveryPricingDemo}',
   "shared pricing props");
-shop = shop.replaceAll("\\\\n", "\\n");
 writeFileSync(shopPath, shop);
 
 console.log("Crazy Delivery 2.0: safe demo cart + shared admin pricing integrated.");
