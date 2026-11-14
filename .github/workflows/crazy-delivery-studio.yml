@@ -30,4 +30,4 @@ jobs:
         with:
           node-version: "22"
       - name: Run tariff validation and edge-case tests
-        run: node --experimental-strip-types --test scripts/delivery-studio/rates.test.mjs
+        run: node --experimental-strip-types --test scripts/delivery-studio/rates.test.mjs scripts/delivery-studio/route-demo.test.mjs
