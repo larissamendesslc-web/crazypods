@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ArrowLeft,ArrowRight,CheckCircle2,Copy,ExternalLink,MessageCircle,Minus,Package,Plus,ShieldCheck,ShoppingBag,Truck,Wallet,ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WhatsAppIcon } from "@/components/shop";
-import { sampleCatalog,defaultState,DEMO_KEY,createSampleOrder,changeOrder,makeItems,encodeReference,decodeReference,importReference,formatBRL,demoRevenue,statusLabel,type DemoOrder,type DemoState } from "@/lib/orders-demo";
+import { WhatsAppIcon, useSettings } from "@/components/shop";
+import { sampleCatalog,defaultState,DEMO_KEY,createSampleOrder,makeItems,encodeReference,decodeReference,importReference,formatBRL,type DemoOrder,type DemoState } from "@/lib/orders-demo";
 
 function useDemoState(){
  const [state,setState]=useState<DemoState>(defaultState);
@@ -37,6 +37,7 @@ function OrderRows({order}:{order:DemoOrder}){
 
 export function SampleOrdersCustomer(){
  const {state,save}=useDemoState();
+ const {WA_NUM}=useSettings();
  const [quantities,setQuantities]=useState<Record<string,number>>({agenda:1,copo:0,organizador:0});
  const [screen,setScreen]=useState<"catalog"|"details"|"created">("catalog");
  const [orderId,setOrderId]=useState<string|null>(null);
@@ -96,7 +97,7 @@ export function SampleOrdersCustomer(){
     <p className="my-5 text-sm text-muted-foreground">Compartilhe a referência. A loja poderá responder manualmente no WhatsApp. Nenhum pagamento ou pedido real será processado.</p>
     <OrderRows order={created}/>
     <div className="mt-5 space-y-2">
-     <a className="flex min-h-12 items-center justify-center gap-2 rounded-lg bg-whatsapp px-5 py-3 text-sm font-bold text-white" href={"https://api.whatsapp.com/send?text="+encodeURIComponent("CRAZY ORDERS · DEMONSTRAÇÃO\nReferência: "+created.id+"\n"+referenceUrl+"\nProdutos fictícios. Não é uma compra.")} target="_blank" rel="noreferrer"><WhatsAppIcon className="h-5 w-5"/> Compartilhar referência de teste</a>
+     <a className="flex min-h-12 items-center justify-center gap-2 rounded-lg bg-whatsapp px-5 py-3 text-sm font-bold text-white" href={WA_NUM+encodeURIComponent("CRAZY ORDERS · TESTE\nReferência: "+created.id+"\n"+referenceUrl+"\nSomente dados fictícios. Não é uma compra.")} target="_blank" rel="noreferrer"><WhatsAppIcon className="h-5 w-5"/> Compartilhar referência de teste</a>
      <Button variant="outline" onClick={copy} className="w-full"><Copy className="mr-2 h-4 w-4"/> Copiar link</Button>
     </div>
    </section>
@@ -147,71 +148,40 @@ export function SampleOrdersCustomer(){
 export function SampleOrdersAdmin(){
  const {state,save}=useDemoState();
  const [selected,setSelected]=useState<string|null>(null);
- const [shipping,setShipping]=useState("12,00");
  const [incoming,setIncoming]=useState("");
- const [working,setWorking]=useState(false);
  const order=state.orders.find(o=>o.id===selected)??state.orders[0];
- const revenue=demoRevenue(state);
- function action(op:"quote"|"accept"|"pay"|"confirm"|"cancel"){
-  if(!order)return;
+ function receive(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();
   try{
-   let cents: number|undefined;
-   if(op==="quote"){if(!/^\d{1,3}([.,]\d{1,2})?$/.test(shipping.trim()))throw new Error("Use um frete como 12,50.");const [major,minor=""]=shipping.replace(",",".").split(".");cents=Number(major)*100+Number(minor.padEnd(2,"0"));}
-   const next=changeOrder(state,order.id,op,cents);save(next);
-   toast.success(op==="quote"?"Frete fictício registrado.":op==="confirm"?"Teste concluído sem duplicar estoque/receita.":"Status de demonstração atualizado.");
-  }catch(e){toast.error(e instanceof Error?e.message:"Operação não permitida.");}
- }
- function importDemo(e:FormEvent<HTMLFormElement>){
-  e.preventDefault();setWorking(true);
-  try{
-   const value=incoming.includes("#ref=")?incoming.split("#ref=")[1].split(/[&#?]/)[0]:incoming.trim();
-   const decoded=decodeReference(value);if(!decoded)throw new Error("Referência inválida ou fora do formato de demonstração.");
-   save(importReference(state,value));setSelected(decoded.id);setIncoming("");toast.success("Referência fictícia importada.");
-  }catch(e){toast.error(e instanceof Error?e.message:"Erro ao importar.");}
-  finally{setWorking(false);}
+   const link=incoming.includes("#ref=")?incoming.split("#ref=")[1]?.split(/[&#?]/)[0]??"":incoming.trim();
+   const parsed=decodeReference(link);
+   if(!parsed)throw new Error("Referência de teste inválida.");
+   save(importReference(state,link));
+   setSelected(parsed.id);setIncoming("");
+   toast.success("Link de demonstração recebido.");
+  }catch(e){toast.error(e instanceof Error?e.message:"Não foi possível ler o link.");}
  }
  return <div className="space-y-5">
-  <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="flex items-center gap-2"><h1 className="font-display text-xl font-bold md:text-2xl">Pedidos · demonstração</h1><DemoBadge/></div><p className="mt-2 text-xs text-muted-foreground">Operações fictícias e independentes do banco, estoque e financeiro da Crazy Pods.</p></div><a href="/pedidos-demo" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-4 py-2 text-xs font-bold">Ver experiência do cliente <ExternalLink className="h-4 w-4"/></a></div>
-  <div className="grid gap-3 md:grid-cols-3">
-   {[{label:"Referências locais",value:String(state.orders.length),icon:ClipboardList},{label:"Entradas simuladas",value:formatBRL(revenue),icon:Wallet},{label:"Testes concluídos",value:String(state.orders.filter(o=>o.status==="done").length),icon:CheckCircle2}].map(({label,value,icon:Icon})=><div key={label} className={subtle+" p-5"}><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{label}</span><Icon className="h-4 w-4"/></div><p className="mt-3 font-display text-lg font-bold">{value}</p></div>)}
+  <div className="flex flex-wrap items-center justify-between gap-3">
+   <div><div className="flex items-center gap-3"><h1 className="font-display text-xl font-bold md:text-2xl">Recebimento de pedidos · teste</h1><DemoBadge/></div><p className="mt-2 text-xs text-muted-foreground">Somente links de produtos fictícios. Sem processamento de pagamentos, estoque ou financeiro.</p></div>
+   <a href="/pedidos-demo" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-4 py-2 text-xs font-bold">Abrir demonstração do cliente <ExternalLink className="h-4 w-4"/></a>
   </div>
-  <div className={subtle+" p-5"}>
-   <h2 className="font-display text-sm font-bold">Importar referência compartilhada</h2>
-   <p className="mb-4 mt-2 text-xs leading-relaxed text-muted-foreground">Cole o link fictício recebido por WhatsApp. Apenas itens e quantidades serão importados; nomes, telefones e endereços não viajam no link.</p>
-   <form onSubmit={importDemo} className="flex flex-col gap-2 sm:flex-row"><input className={field+" flex-1"} value={incoming} onChange={e=>setIncoming(e.target.value)} placeholder="https://.../pedidos-demo#ref=..." aria-label="Link de referência fictícia" required/><Button type="submit" variant="commerce" disabled={working||!incoming.trim()}>Importar teste</Button></form>
-  </div>
+  <section className={subtle+" p-5 md:p-6"}>
+   <h2 className="font-display text-base font-bold">Consultar link recebido</h2>
+   <p className="my-3 text-xs leading-relaxed text-muted-foreground">Cole a referência de teste compartilhada pelo WhatsApp. O link contém apenas os produtos fictícios e suas quantidades; não contém dados pessoais.</p>
+   <form onSubmit={receive} className="flex flex-col gap-2 sm:flex-row"><input className={field+" min-w-0 flex-1"} value={incoming} onChange={e=>setIncoming(e.target.value)} placeholder="Cole a referência recebida" aria-label="Link fictício recebido" required/><Button type="submit" variant="commerce" disabled={!incoming.trim()}>Consultar link</Button></form>
+  </section>
   <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(300px,1fr)]">
-   <section className={subtle+" min-w-0 p-5"}><h2 className="font-display text-base font-bold">Solicitações de teste</h2>
-    {state.orders.length===0?<div className="mt-6 rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground"><Package className="mx-auto mb-3 h-7 w-7"/>Nenhum pedido fictício neste navegador.</div>:
-    <div className="mt-4 divide-y divide-border">{state.orders.map(o=><button type="button" key={o.id} onClick={()=>setSelected(o.id)} className={"w-full rounded-lg px-3 py-3 text-left transition hover:bg-secondary "+(order?.id===o.id?"bg-secondary/80":"")}><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-mono text-xs font-bold">{o.id}</span><span className="rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground">{statusLabel[o.status]}</span></div><div className="mt-2 flex justify-between gap-3 text-xs text-muted-foreground"><span>{formatDate(o.createdAt)}</span><span>{formatBRL(o.totalCents??o.subtotalCents)}</span></div></button>)}</div>}
-    <h3 className="mt-7 border-t border-border pt-5 text-sm font-bold">Estoque demonstrativo</h3>
-    <div className="mt-2 divide-y divide-border">{sampleCatalog.map(p=><div key={p.id} className="flex justify-between gap-3 py-3 text-xs"><span className="text-muted-foreground">{p.name}</span><strong>{state.inventory[p.id]??0} un.</strong></div>)}</div>
+   <section className={subtle+" min-w-0 p-5"}><h2 className="font-display text-base font-bold">Referências de demonstração</h2>
+    {state.orders.length===0?<p className="py-8 text-center text-sm text-muted-foreground">Nenhuma referência foi criada ou importada neste navegador.</p>:
+     <div className="mt-4 divide-y divide-border">{state.orders.map(o=><button type="button" key={o.id} onClick={()=>setSelected(o.id)} className={"w-full rounded-lg px-3 py-4 text-left transition hover:bg-secondary "+(order?.id===o.id?"bg-secondary/80":"")}><span className="font-mono text-xs font-bold">{o.id}</span><div className="mt-2 flex justify-between gap-4 text-xs text-muted-foreground"><span>{formatDate(o.createdAt)}</span><span>{o.items.length} tipo(s) de item</span></div></button>)}</div>}
    </section>
-   <section className={subtle+" min-w-0 p-5"}><h2 className="font-display text-base font-bold">Atendimento</h2>
-    {order?<><div className="mt-5 flex flex-wrap items-center justify-between gap-2"><p className="font-mono text-xs font-bold">{order.id}</p><span className="text-xs text-primary-glow">{statusLabel[order.status]}</span></div>
-     <div className="mt-3"><OrderRows order={order}/></div>
-     <div className="mt-2 flex justify-between py-2 text-xs"><span>Subtotal</span><strong>{formatBRL(order.subtotalCents)}</strong></div>
-     <div className="flex justify-between border-b border-border py-2 text-xs"><span>Frete</span><strong>{order.shippingCents===null?"A combinar":formatBRL(order.shippingCents)}</strong></div>
-     <div className="flex justify-between py-4 text-sm font-bold"><span>Total demonstrativo</span><strong>{order.totalCents===null?"—":formatBRL(order.totalCents)}</strong></div>
-     <div className="mt-3 rounded-lg border border-border bg-secondary/40 p-4 text-xs">
-      <p className="mb-1 font-bold">Dados fictícios disponíveis neste navegador</p>
-      <p className="text-muted-foreground">{order.customer.name} · {order.customer.phone??"Telefone não transmitido"}</p>
-      <p className="mt-1 text-muted-foreground">{order.customer.street??"Endereço não transmitido"}, {order.customer.number??"s/n"} · {order.customer.district??""} · {order.customer.city}/{order.customer.state}</p>
-     </div>
-     {!["done","cancelled"].includes(order.status)&&<div className="mt-4">
-      <label className="mb-2 block text-xs font-bold" htmlFor="fake-shipping">Frete fictício (R$)</label>
-      <div className="flex gap-2"><input id="fake-shipping" className={field+" min-w-0 flex-1"} value={shipping} onChange={e=>setShipping(e.target.value)} inputMode="decimal"/><Button type="button" variant="secondary" onClick={()=>action("quote")}>Definir</Button></div>
-      <p className="mt-2 text-xs text-muted-foreground">Orçamento e confirmação são tratados na conversa, fora do site.</p>
-     </div>}
-     <div className="mt-5 flex flex-col gap-2">
-      {order.status==="quoted"&&<Button variant="commerce" onClick={()=>action("accept")}>Registrar aceite informado pelo WhatsApp</Button>}
-      {order.status==="accepted"&&<Button variant="commerce" onClick={()=>action("pay")}>Simular pagamento recebido</Button>}
-      {order.status==="paid"&&<Button variant="commerce" onClick={()=>action("confirm")}>Concluir operação de teste</Button>}
-      {order.status!=="cancelled"&&<Button variant="outline" onClick={()=>action("cancel")}>{order.status==="done"?"Estornar simulação":"Cancelar simulação"}</Button>}
-     </div>
-    </>:<p className="py-8 text-sm text-muted-foreground">Crie ou importe uma referência fictícia para começar.</p>}
+   <section className={subtle+" min-w-0 p-5"}>
+    <h2 className="font-display text-base font-bold">Itens da referência</h2>
+    {order?<><p className="mt-4 font-mono text-xs font-bold text-primary-glow">{order.id}</p><div className="mt-4"><OrderRows order={order}/></div><div className="mt-3 flex items-center justify-between border-t border-border py-4 text-sm font-bold"><span>Subtotal fictício</span><strong>{formatBRL(order.subtotalCents)}</strong></div>
+     <p className="mt-5 rounded-lg bg-secondary p-4 text-xs leading-relaxed text-muted-foreground">A loja utiliza o link para consulta; qualquer resposta é feita manualmente pelo WhatsApp. Sem cobranças, confirmações de pagamento ou movimentações financeiras no sistema.</p>
+    </>:<p className="py-10 text-sm text-muted-foreground">Receba uma referência para consultar os itens fictícios.</p>}
    </section>
   </div>
-  <div className={subtle+" flex flex-wrap items-center justify-between gap-3 p-5"}><div><h2 className="text-sm font-bold">Extrato de testes</h2><p className="mt-1 text-xs text-muted-foreground">Lançamentos e estornos são idempotentes apenas no navegador; não representam um banco de produção.</p></div><strong className="font-display text-base">{formatBRL(revenue)}</strong><div className="w-full divide-y divide-border">{state.ledger.map((l,i)=><div key={l.orderId+"-"+i} className="flex justify-between py-2 text-xs"><span>{l.orderId} · {l.type==="sale"?"Entrada fictícia":"Estorno fictício"}</span><span>{formatBRL(l.amountCents)}</span></div>)}</div></div>
  </div>;
 }
