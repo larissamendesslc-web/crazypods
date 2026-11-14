@@ -7,7 +7,7 @@ export const sampleCatalog: SampleProduct[] = [
 ];
 export type DemoItem = { id:string; qty:number; name:string; priceCents:number };
 export type OrderStatus = "new"|"quoted"|"accepted"|"paid"|"done"|"cancelled";
-export type DemoOrder = { id:string; items:DemoItem[]; subtotalCents:number; shippingCents:number|null; totalCents:number|null; status:OrderStatus; quoteVersion:number; acceptedVersion:number|null; customer:{name:string;city:string;state:string}; createdAt:string };
+export type DemoOrder = { id:string; items:DemoItem[]; subtotalCents:number; shippingCents:number|null; totalCents:number|null; status:OrderStatus; quoteVersion:number; acceptedVersion:number|null; customer:{name:string;city:string;state:string;phone?:string;cep?:string;street?:string;number?:string;district?:string;reference?:string}; createdAt:string };
 export type DemoLedger = { orderId:string; amountCents:number; type:"sale"|"reversal" };
 export type DemoState = { orders:DemoOrder[]; inventory:Record<string,number>; ledger:DemoLedger[] };
 export const DEMO_KEY="crazy-orders-native-lab-v1";
