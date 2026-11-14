@@ -39,12 +39,14 @@ export async function calculateDemoRoadRoutes(
   if (data.code !== "Ok" || !Array.isArray(data.distances) || !Array.isArray(data.durations)) {
     throw new Error("Não foi possível determinar rotas para esse CEP.");
   }
+  const distances = data.distances as unknown[][];
+  const durations = data.durations as unknown[][];
   const routes = stores.flatMap(({ id }, i) => {
-    const distance = Array.isArray(data.distances?.[i]) ? data.distances[i][0] : null;
-    const duration = Array.isArray(data.durations?.[i]) ? data.durations[i][0] : null;
+    const distance = Array.isArray(distances[i]) ? distances[i][0] : null;
+    const duration = Array.isArray(durations[i]) ? durations[i][0] : null;
     if (typeof distance !== "number" || !Number.isFinite(distance) || distance < 0 ||
         typeof duration !== "number" || !Number.isFinite(duration) || duration < 0) return [];
-    return [{ storeId: id, km: Math.round(distance / 100) / 10, minutes: Math.ceil(duration / 60) }];
+    return [{ storeId: id, km: Math.round(distance) / 1000, minutes: Math.ceil(duration / 60) }];
   });
   if (routes.length === 0) throw new Error("Não existe rota disponível para esse CEP.");
   return routes;
