@@ -13,6 +13,11 @@ node scripts/floating-cart.mjs
 mkdir -p public/crazy-orders-demo
 cp overrides/crazy-orders-demo/{index.html,demo.css,demo.mjs,logic.mjs} public/crazy-orders-demo/
 
+# Fail the preview build if JavaScript is damaged; this prevents blank interactive screens.
+node --check overrides/crazy-orders-demo/logic.mjs
+node --check overrides/crazy-orders-demo/demo.mjs
+node --test overrides/crazy-orders-demo/logic.test.mjs
+
 logo_dir="public/__l5e/assets-v1/4899a810-cb7b-4859-a781-ea2a51845235"
 mkdir -p "$logo_dir"
 cp public/favicon.png "$logo_dir/crazy-pods-logo.png"
