@@ -1,46 +1,57 @@
-# Crazy Delivery Studio 2.0 — preview branch
+# CRAZY DELIVERY 2.0 — ambiente demonstrativo
 
-## What is delivered
-This is an **admin-only, fictional logistics and payment simulator**, styled with existing Crazy Pods / Black Volt tokens.
+Versão de testes integrada ao Crazy Pods existente, sem habilitar compras ou entrega comercial de dispositivos eletrônicos para fumar.
 
-- Two independent locations: Quitaúna and Jardim Boa Vista.
-- Editable distance tiers, delivery fees, maximum radius and free-delivery threshold.
-- Client-side calculation with explicit validation and boundary behavior.
-- Enabled / disabled service draft.
-- Illustrative payment-method toggles (Pix, cards, cash).
-- Readable JSON output and **sessionStorage-only** recovery for one browser tab.
-- No network calls, no financial credential entry, no order creation, no WhatsApp dispatch.
-- No changes to the production shopping cart, route engine, database, or published branch.
+## Interface e fluxo
 
-**Important:** the default BRL amounts are invented examples for UI testing, not verified rates from Crazy1 or any real merchant. Kilometer inputs in the preview are manually supplied; **no road-distance API has been integrated**.
+- Mantém o visual Black Volt, categorias e carrinho flutuante.
+- O carrinho utiliza os produtos cadastrados somente como **massa de dados de simulação**.
+- Consulta CEP por ViaCEP/BrasilAPI; busca por rua se cliente desconhece o CEP.
+- Número, complemento, nome e telefone podem ser preenchidos para avaliar a interface, sem serem enviados ao banco pelo módulo de testes.
+- Tarifas por unidade, faixas de quilômetros, raio máximo e frete grátis configuráveis em **Painel > Site > Delivery Studio 2.0**.
+- Alterações demonstrativas passam ao carrinho **após clicar em Salvar regras do simulador**.
+- Campos e preços de pagamento apenas ilustrativos (Pix, cartão, dinheiro).
+- O botão **Concluir simulação** gera somente resumo local de teste; não cria pedido, estoque, movimentação financeira, Pix, cobrança ou mensagem por WhatsApp.
 
-## Why the build uses an injection script
-The existing repository reconstructs application files by unzipping an archive and applying several patches in `scripts/prepare-build.sh`. The standalone `scripts/delivery-studio/install.mjs` runs only after those previous patches; it copies the source modules and inserts one component before the admin settings' existing save bar.
+## Cálculo e limitações importantes
 
-The installer fails with a descriptive error when the expected integration point changes. It does not modify cart code or any merchant API.
+As faixas e valores iniciais são *fictícios*, não representam tarifas do Crazy1 ou de qualquer loja.
 
-## How to verify
-1. Open a Vercel Preview deployment on this feature branch.
-2. Sign into the existing admin console using authorized credentials.
-3. Open Settings, scroll to Delivery Studio 2.0.
-4. Switch between Quitaúna and Jardim Boa Vista and edit rates.
-5. In the simulator, test 3 km vs 3.01 km, 12 km vs 12.01 km and subtotal just below / at the free-shipping threshold.
-6. Disable a store, enter invalid or overlapping tiers and confirm no quote is produced.
-7. Refresh the same tab and verify draft recovery; reset to example when done.
-8. Check that storefront, checkout, WhatsApp links, inventory, database and production are unchanged.
+Para simular distância por ruas:
+1. Administrador cadastra CEP e coordenadas das unidades em Configurações.
+2. Usuário informa CEP válido cuja consulta também disponibilize coordenadas.
+3. Clica em **Calcular distância pelas ruas (teste)**.
+4. Uma única consulta para até duas unidades usa a matriz do OSRM público. O site indica a origem e mostra quilômetros estimados por CEP e minutos aproximados.
+5. Quando dados/serviço não estiverem disponíveis, há campo **Distância manual para testes** com identificação inequívoca. O sistema nunca confunde uma distância em linha reta com rota viária.
 
-## Unit tests
-Node 22+:
+Servidor demo OSRM: https://router.project-osrm.org. Serviço comunitário não comercial, sujeito a indisponibilidade e limite de uso. Para um e-commerce legal e de verdade, deve ser substituído por roteamento contratado + cálculo final no servidor. A geolocalização do CEP é aproximada (BrasilAPI), não considera número do imóvel ou condições de trânsito.
+
+## Persistência e segurança
+
+Utiliza a tabela já existente `site_settings` e a função de salvamento existente `saveSettingsPatch` sob autenticação/admin e RLS existentes, sem novas tabelas/migrations.
+
+A configuração é salva em chaves separadas:
+- Preview: `crazy_delivery_demo_preview_v1`
+- Produção: `crazy_delivery_demo_v1`
+
+As regras são validadas ao ler e antes de salvar. Controles no navegador e preços simulados não representam cotação comercial autorizada.
+
+## Estratégia de build
+
+O repositório contém um ZIP com o aplicativo, e no build aplica patches sobre o ZIP. O instalador `scripts/delivery-studio/install.mjs` copia os três módulos TS/TSX e faz substituições pontuais, falhando quando um ponto de integração não existe. Os patches originais e o visual são preservados.
+
+## Testes
 
 ```sh
-node --experimental-strip-types --test scripts/delivery-studio/rates.test.mjs
+node --experimental-strip-types --test scripts/delivery-studio/rates.test.mjs scripts/delivery-studio/route-demo.test.mjs
 ```
 
-GitHub Actions runs the same suite for pushes and PRs affecting this feature.
+CI automatizado: `.github/workflows/crazy-delivery-studio.yml`.
 
-## Follow-up design decisions (not implemented)
-- A legally compliant merchant could later move these rules to restricted Supabase tables, with RLS and validated admin write APIs.
-- A trusted server-side routing provider should return road distance; use a fail-closed fallback if routes are unavailable. Do not present Haversine distance as actual road distance.
-- Rate quotes should be recomputed server-side, not trusted from browsers, and versioned against store policies.
-- Any lawful payment integration must be isolated server-side, idempotent, audited and activated only after regulatory and provider compliance checks.
-- No real-purchase flow for electronic smoking devices is included or authorized by this preview.
+Cenários a verificar manualmente: CEP válido, CEP inexistente, busca por endereço, faltam coordenadas, falha de OSRM, duas lojas com preços diferentes, tarifa máxima, frete grátis, zero rotas, modalidade não selecionada, iPhone/Android/desktop, administrador salvando e o carrinho refletindo.
+
+## Para futuro e-commerce legal de fones
+
+Implementar avaliação regulatória da categoria, checkout REAL independente, gateway de pagamento contratado, servidor seguro para cálculo da tarifa final, cotação idempotente e com expiração, gestão de estoque, limites de área, autenticação/autorização, políticas RLS, prevenção de abuso, privacidade dos endereços e notificações autorizadas por WhatsApp Business.
+
+**Não remover o modo de demonstração em produção sem revisão técnica, legal e testes reais de pagamento.**
