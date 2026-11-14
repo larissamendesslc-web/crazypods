@@ -82,11 +82,16 @@ export function toSlug(value: string) {
 
 /** For admin input; never pass client-supplied amounts to payment gateway. */
 export function parseBRLCents(input: string): number | null {
-  const value = input.trim();
-  if (!/^\d{1,8}(?:[.,]\d{1,2})?$/.test(value)) return null;
-  const [whole, frac = ""] = value.replace(",", ".").split(".");
+  const value = input.trim().replace(/^R\$\s*/i, "");
+  const form = /^\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?$/.test(value)
+    ? value.replace(/\./g, "").replace(",", ".")
+    : /^\d{1,8}(?:[.,]\d{1,2})?$/.test(value)
+      ? value.replace(",", ".")
+      : null;
+  if (!form) return null;
+  const [whole, frac = ""] = form.split(".");
   const cents = Number(whole) * 100 + Number(frac.padEnd(2, "0"));
-  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+  return Number.isSafeInteger(cents) && cents > 0 && cents <= 100_000_000 ? cents : null;
 }
 
 export function formatBRL(cents: number) {
