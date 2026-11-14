@@ -1,4 +1,4 @@
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 /** The repository reconstructs its application from an archive + patches.
  * Apply only after the delivery installation; fail closed if anchors change.
@@ -13,6 +13,12 @@ copy("catalog.ts", "src/lib/commerce-model.ts");
 copy("catalog-data.ts", "src/lib/commerce-data.ts");
 copy("CommerceManager.tsx", "src/components/commerce-manager.tsx");
 copy("UniversalStorefront.tsx", "src/components/universal-storefront.tsx");
+copy("commerce-db.server.ts", "src/lib/commerce-db.server.ts");
+copy("mercadopago.server.ts", "src/lib/mercadopago.server.ts");
+mkdirSync("src/routes/api/commerce", { recursive: true });
+copy("pix-route.ts", "src/routes/api/commerce/pix.ts");
+copy("mp-webhook-route.ts", "src/routes/api/commerce/mp-webhook.ts");
+
 
 const route = [
   'import { createFileRoute } from "@tanstack/react-router";',
