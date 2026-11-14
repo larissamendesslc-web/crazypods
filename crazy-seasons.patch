@@ -397,6 +397,82 @@ index 0000000..6c0451c
 +    </p>
 +  );
 +}
+diff --git a/src/components/seasonal-theme-settings.test.tsx b/src/components/seasonal-theme-settings.test.tsx
+new file mode 100644
+index 0000000..e73d211
+--- /dev/null
++++ b/src/components/seasonal-theme-settings.test.tsx
+@@ -0,0 +1,70 @@
++import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
++import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
++import { DEFAULT_SEASON, type SeasonSettings } from "@/lib/seasons";
++
++const persistence = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn() }));
++vi.mock("@/lib/settings", () => ({
++  settingsQuery: { queryKey: ["site_settings"], queryFn: persistence.read },
++  saveSeason: persistence.save,
++}));
++vi.mock("@/components/shop", () => ({ WhatsAppIcon: () => null }));
++
++import { SeasonalThemeSettings } from "./seasonal-theme-settings";
++
++function openPanel() {
++  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
++  return render(
++    <QueryClientProvider client={queryClient}>
++      <SeasonalThemeSettings />
++    </QueryClientProvider>,
++  );
++}
++
++let stored: SeasonSettings;
++beforeEach(() => {
++  stored = DEFAULT_SEASON;
++  persistence.read.mockReset().mockImplementation(async () => ({ season: stored }));
++  persistence.save.mockReset().mockImplementation(async (value) => {
++    stored = value;
++  });
++});
++afterEach(cleanup);
++
++describe("Aparência sazonal", () => {
++  it("previews the draft, then saves, reloads and restores the original", async () => {
++    const panel = openPanel();
++    const save = screen.getByRole("button", { name: "Salvar aparência" });
++    await waitFor(() => expect(save).toBeEnabled());
++    fireEvent.click(screen.getByRole("switch", { name: "Modo Natal" }));
++    fireEvent.change(screen.getByLabelText("Intensidade da neve"), { target: { value: "medium" } });
++    fireEvent.click(screen.getByRole("button", { name: "Pré-visualizar" }));
++    expect(await screen.findByRole("dialog", { name: "Prévia Black Ice" })).toBeVisible();
++    expect(screen.getByText("Boas festas, da equipe Crazy Pods.")).toBeVisible();
++    expect(persistence.save).not.toHaveBeenCalled();
++    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
++
++    fireEvent.click(save);
++    expect(await screen.findByText("Aparência sazonal salva.")).toBeVisible();
++    expect(stored).toMatchObject({ enabled: true, snow: "medium" });
++    panel.unmount();
++
++    openPanel();
++    await waitFor(() => expect(screen.getByRole("switch", { name: "Modo Natal" })).toBeChecked());
++    fireEvent.click(screen.getByRole("button", { name: "Restaurar aparência original" }));
++    expect(await screen.findByText("Aparência original restaurada.")).toBeVisible();
++    expect(stored).toEqual(DEFAULT_SEASON);
++  });
++
++  it("displays permission errors and keeps the draft available", async () => {
++    persistence.save.mockRejectedValueOnce(new Error("Policy denied"));
++    openPanel();
++    const save = screen.getByRole("button", { name: "Salvar aparência" });
++    await waitFor(() => expect(save).toBeEnabled());
++    fireEvent.click(screen.getByRole("switch", { name: "Modo Natal" }));
++    fireEvent.click(save);
++    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível salvar.");
++    expect(screen.getByRole("switch", { name: "Modo Natal" })).toBeChecked();
++    expect(stored).toEqual(DEFAULT_SEASON);
++  });
++});
 diff --git a/src/components/seasonal-theme-settings.tsx b/src/components/seasonal-theme-settings.tsx
 new file mode 100644
 index 0000000..33175d2
