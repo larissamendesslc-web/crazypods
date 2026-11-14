@@ -21,10 +21,12 @@ export function AgeGate({ children }: { children: ReactNode }) {
   const { data, isError } = useQuery(settingsQuery);
   const engine = data?.season ?? DEFAULT_SETTINGS.season;
   const now = useSeasonClock(engine, !!data && !isError);
-  // URL-only preview does not change the saved seasonal theme or production appearance.
-  const demo = import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] === "1" &&
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("ageTheme") === "christmas";
+  // Read browser-only search parameters after hydration so SSR and client markup agree.
+  const [demo, setDemo] = useState(false);
+  useEffect(() => {
+    if (import.meta.env["VITE_CRAZY_SEASONS_PREVIEW"] !== "1") return;
+    setDemo(new URLSearchParams(window.location.search).get("ageTheme") === "christmas");
+  }, []);
   const christmas = demo || (!!data && !isError && activeTheme(engine, now ?? Number.NaN) === "christmas");
 
   useEffect(() => {
@@ -51,20 +53,14 @@ export function AgeGate({ children }: { children: ReactNode }) {
       className={"grid min-h-dvh place-items-center bg-background px-5 py-12" +
         (christmas ? " age-gate-black-ice" : "")}
     >
-      {christmas && (
-        <>
-          <div className="age-gate-black-ice-art" aria-hidden="true" />
-          <div className="age-gate-black-ice-vignette" aria-hidden="true" />
-          {engine.profiles.christmas.effects.snow && (
-            <div className="age-gate-black-ice-snow" aria-hidden="true">
-              <SnowfallEffect intensity={engine.profiles.christmas.intensity} />
-            </div>
-          )}
-        </>
+      {christmas && engine.profiles.christmas.effects.snow && (
+        <div className="age-gate-black-ice-snow" aria-hidden="true">
+          <SnowfallEffect intensity={engine.profiles.christmas.intensity} />
+        </div>
       )}
 
       <section
-        className={"w-full max-w-md text-center" + (christmas ? " age-gate-black-ice-card" : "")}
+        className={"age-gate-real-content relative z-10 w-full max-w-md text-center" + (christmas ? " age-gate-black-ice-card" : "")}
         aria-labelledby="age-title"
       >
         <div className={christmas ? "age-gate-black-ice-logo relative mx-auto w-fit" : "relative mx-auto w-fit"}>
