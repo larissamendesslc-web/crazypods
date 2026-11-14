@@ -1762,6 +1762,66 @@ index 960c3fd..e5516db 100644
 +}
 +
  export const waBase = (s: SiteSettings) => `https://wa.me/${s.whatsapp.replace(/\D/g, "")}?text=`;
+diff --git a/src/lib/theme-engine.test.ts b/src/lib/theme-engine.test.ts
+new file mode 100644
+index 0000000..75a101a
+--- /dev/null
++++ b/src/lib/theme-engine.test.ts
+@@ -0,0 +1,54 @@
++import { describe, expect, it } from "vitest";
++import {
++  activeTheme,
++  formatThemeDate,
++  migrateEngine,
++  parseThemeDate,
++  readEngine,
++  scheduleError,
++} from "./theme-engine";
++
++describe("Crazy Seasons 2.0", () => {
++  it("preserves scheduled Black Ice and custom effects when upgrading", () => {
++    const start = "2026-12-01T03:00:00Z";
++    const end = "2026-12-26T03:00:00Z";
++    const engine = migrateEngine({ enabled: true, snow: "strong", logoHat: false, start, end });
++    expect(engine.profiles.christmas).toMatchObject({
++      intensity: "strong",
++      effects: { logoHat: false },
++      start,
++      end,
++      scheduled: true,
++    });
++    expect(activeTheme(engine, Date.parse(start) - 1)).toBeNull();
++    expect(activeTheme(engine, Date.parse(start))).toBe("christmas");
++    expect(activeTheme(engine, Date.parse(end))).toBeNull();
++    expect(readEngine(engine, undefined)).toEqual(engine);
++  });
++
++  it("rejects overlapping schedules but accepts adjacent periods", () => {
++    const engine = migrateEngine(undefined);
++    const boundary = "2026-12-26T03:00:00Z";
++    Object.assign(engine.profiles.christmas, { scheduled: true, end: boundary });
++    Object.assign(engine.profiles.newyear, { scheduled: true, start: boundary });
++    expect(scheduleError(engine)).toBeUndefined();
++    expect(activeTheme(engine, Date.parse(boundary))).toBe("newyear");
++    engine.profiles.newyear.start = "2026-12-25T03:00:00Z";
++    expect(scheduleError(engine)).toMatch(/sobrepõem/);
++    expect(activeTheme(readEngine(engine, undefined), Date.parse(boundary))).toBeNull();
++  });
++
++  it("uses one manual theme and restores Original while the agenda is paused", () => {
++    const engine = migrateEngine({ enabled: true, start: "2026-12-01T03:00:00Z" });
++    const now = Date.parse("2026-12-05T00:00:00Z");
++    expect(activeTheme({ ...engine, manual: "cyber" }, now)).toBe("cyber");
++    expect(activeTheme({ ...engine, pauseSchedule: true }, now)).toBeNull();
++    expect(activeTheme(engine, now)).toBe("christmas");
++  });
++
++  it("uses the São Paulo time zone including past offset changes", () => {
++    expect(parseThemeDate("2026-12-31T23:59")).toBe("2027-01-01T02:59:00.000Z");
++    expect(formatThemeDate("2018-12-31T22:00:00.000Z")).toBe("2018-12-31T20:00");
++    expect(() => parseThemeDate("2018-11-04T00:30")).toThrow(/inválido/);
++  });
++});
 diff --git a/src/lib/theme-engine.ts b/src/lib/theme-engine.ts
 new file mode 100644
 index 0000000..44b966d
