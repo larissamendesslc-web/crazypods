@@ -12,10 +12,12 @@ console.log("Crazy Checkout payment backend installed; existing site and catalog
 
 for (const file of ["src/lib/checkout-quote.server.ts", "src/lib/checkout-mercadopago.server.ts"]) {
   const input = readFileSync(file, "utf8");
-  if (!input.includes('from "./payment-amounts"')) {
+  const sourceImport = input.includes('from "./payment-amounts.ts"')
+    ? 'from "./payment-amounts.ts"' : 'from "./payment-amounts"';
+  if (!input.includes(sourceImport)) {
     throw new Error("Checkout backend adapter source changed; refusing unsafe install.");
   }
-  writeFileSync(file, input.replace('from "./payment-amounts"', 'from "@/lib/checkout-payment-amounts"'));
+  writeFileSync(file, input.replace(sourceImport, 'from "@/lib/checkout-payment-amounts"'));
 }
 
 await import('./sync-cart-prices.mjs');
