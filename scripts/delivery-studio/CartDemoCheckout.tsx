@@ -209,21 +209,11 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
             <section aria-labelledby="demo-address" className="space-y-3 rounded-xl border border-border bg-secondary/40 p-3 sm:p-4">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-violet-400" aria-hidden="true" />
-                <h2 id="demo-address" className="font-display font-bold">Endereço do teste</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block text-xs font-medium text-muted-foreground">
-                  Nome
-                  <Input name="name" autoComplete="name" required minLength={2} maxLength={120} className={fieldStyle} placeholder="Seu nome" />
-                </label>
-                <label className="block text-xs font-medium text-muted-foreground">
-                  Telefone com DDD
-                  <Input name="phone" autoComplete="tel" type="tel" required maxLength={25} className={fieldStyle} placeholder="(11) 99999-9999" />
-                </label>
+                <h2 id="demo-address" className="font-display font-bold">Informe seu CEP</h2>
               </div>
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <label htmlFor="demo-cep" className="text-xs font-medium text-muted-foreground">CEP</label>
+                  <label htmlFor="demo-cep" className="text-xs font-medium text-muted-foreground">Calcule o frete automaticamente, antes de finalizar os dados</label>
                   <Button type="button" variant="ghost" aria-expanded={showCepSearch}
                     className="h-9 px-2 text-xs" onClick={() => setShowCepSearch(v => !v)}>
                     {showCepSearch ? "Fechar busca" : "Não sei meu CEP"}
@@ -246,6 +236,16 @@ export function CartCheckout({ items, deliveryStores, deliveryPolicy, onClear, c
                     {[address.street, address.district, address.city, address.state].filter(Boolean).join(" · ")}
                   </p>
                 )}
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Nome
+                  <Input name="name" autoComplete="name" required minLength={2} maxLength={120} className={fieldStyle} placeholder="Seu nome" />
+                </label>
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Telefone com DDD
+                  <Input name="phone" autoComplete="tel" type="tel" required maxLength={25} className={fieldStyle} placeholder="(11) 99999-9999" />
+                </label>
               </div>
               {address && !address.street && (
                 <label className="block text-xs font-medium text-muted-foreground">
