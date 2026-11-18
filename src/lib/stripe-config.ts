@@ -1,0 +1,2 @@
+// Publishable browser key supplied by the store owner; never put private keys here.
+export const stripePublishableKey = "pk_test_51UbYe9Rr8V5C2Ge4xVVtJaFZTicDn4vdwdYStyGaXQLM9ffd8rAHxmrfcnB0zahqlsgFdOsKTaSkkiNOBiOmQmY600CezhGVxX";

@@ -1,0 +1,17 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Bike, Plus, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { couriersQuery, deliveriesQuery } from "@/lib/tracking-queries";
+import { adminHead } from "@/lib/admin-head";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { DELIVERY_STATES } from "@/lib/tracking";
+export const Route = createFileRoute("/admin/entregadores")({ head: () => adminHead("Entregadores", "Motoboys e entregas da própria Crazy."), component: Couriers });
+function Couriers() {
+  const couriers = useQuery(couriersQuery); const deliveries = useQuery(deliveriesQuery); const qc = useQueryClient(); const [email, setEmail] = useState(""); const [busy, setBusy] = useState(false);
+  return <><div className="mb-7 flex flex-wrap items-center justify-between gap-4"><h1 className="font-display text-2xl font-bold">Entregadores</h1><Button asChild variant="outline"><Link to="/entregador"><ExternalLink className="h-4 w-4" /> Área do motoboy</Link></Button></div><form className="mb-8 flex max-w-xl flex-wrap items-end gap-3" onSubmit={async (e) => { e.preventDefault(); setBusy(true); const { error } = await supabase.rpc("register_courier", { _email: email.trim(), _active: true }); if (error) toast.error(error.message); else { setEmail(""); toast.success("Motoboy habilitado"); await qc.invalidateQueries({ queryKey: ["admin", "couriers"] }); } setBusy(false); }}><label className="min-w-0 flex-1 space-y-2"><span className="text-sm">E-mail da conta do motoboy</span><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label><Button disabled={busy} type="submit" variant="neon"><Plus className="h-4 w-4" /> Habilitar</Button></form>{couriers.error && <p role="alert" className="text-destructive">Não foi possível carregar os motoboys.</p>}<div className="grid gap-4 sm:grid-cols-2">{couriers.data?.map((c) => <article key={c.user_id} className="rounded-lg border bg-card p-5"><div className="flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-bold"><Bike className="h-5 w-5 text-primary" />{c.name}</h2><Switch aria-label={`Ativo: ${c.name}`} checked={c.active} onCheckedChange={async (active) => { const { error } = await supabase.rpc("set_courier_active", { _courier_id: c.user_id, _active: active }); if (error) toast.error(error.message); else { await qc.invalidateQueries({ queryKey: ["admin", "couriers"] }); await qc.invalidateQueries({ queryKey: ["deliveries"] }); } }} /></div><p className="mt-2 text-sm text-muted-foreground">{c.phone}</p><ul className="mt-4 space-y-2 text-xs text-muted-foreground">{deliveries.data?.filter((d) => d.courier_id === c.user_id && !["entregue", "cancelado"].includes(d.state)).map((d) => <li key={d.order_id}>{DELIVERY_STATES[d.state]}{d.issue && ` · ${d.issue}`}</li>)}</ul></article>)}</div>{couriers.data?.length === 0 && <p className="text-muted-foreground">Nenhum motoboy habilitado.</p>}</>;
+}

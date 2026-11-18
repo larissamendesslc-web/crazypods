@@ -1,0 +1,238 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-surface: var(--surface);
+  --color-chart-1: var(--primary);
+  --color-chart-2: var(--accent);
+  --color-chart-3: var(--muted-foreground);
+  --color-chart-4: var(--success);
+  --color-chart-5: var(--destructive);
+  --color-sidebar: var(--card);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--secondary);
+  --color-sidebar-accent-foreground: var(--foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+}
+
+/* Crazy — base "Neon Ácido" */
+:root {
+  --radius: 1rem;
+  --background: oklch(0.13 0.006 285);
+  --foreground: oklch(0.97 0.01 120);
+  --surface: oklch(0.17 0.01 285);
+  --card: oklch(0.19 0.012 285);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.18 0.012 285);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.93 0.22 128);
+  --primary-foreground: oklch(0.15 0.02 130);
+  --secondary: oklch(0.24 0.014 285);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.22 0.012 285);
+  --muted-foreground: oklch(0.68 0.015 285);
+  --accent: oklch(0.7 0.29 330);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.64 0.23 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.78 0.18 155);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: var(--primary);
+
+  --glow-primary: 0 0 40px -6px color-mix(in oklab, var(--primary) 70%, transparent);
+  --glow-accent: 0 0 50px -8px color-mix(in oklab, var(--accent) 70%, transparent);
+  --gradient-brand: linear-gradient(110deg, var(--primary), var(--accent));
+  --gradient-stage: radial-gradient(60% 55% at 50% 55%, color-mix(in oklab, var(--stage, var(--primary)) 38%, transparent), transparent 70%);
+  --gradient-fade: linear-gradient(to bottom, transparent, var(--background));
+}
+
+[data-theme="natal"] {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.25 0.035 160);
+  --surface: oklch(0.975 0.005 160);
+  --card: oklch(0.995 0.002 160);
+  --popover: var(--background);
+  --secondary: oklch(0.95 0.012 160);
+  --muted: oklch(0.96 0.005 160);
+  --muted-foreground: oklch(0.47 0.025 160);
+  --primary: oklch(0.52 0.21 25);
+  --primary-foreground: oklch(1 0 0);
+  --accent: oklch(0.37 0.08 160);
+  --accent-foreground: oklch(1 0 0);
+  --border: oklch(0.88 0.012 160);
+  --input: var(--border);
+  --success: oklch(0.43 0.12 155);
+  --destructive: oklch(0.52 0.21 25);
+  --glow-primary: 0 5px 16px -10px color-mix(in oklab, var(--primary) 25%, transparent);
+  --glow-accent: 0 5px 16px -10px color-mix(in oklab, var(--accent) 20%, transparent);
+  --gradient-brand: linear-gradient(110deg, var(--primary), var(--primary));
+  --snow-shadow: 0 1px 2px color-mix(in oklab, var(--accent) 20%, transparent);
+  --festive-shadow: 0 8px 24px -18px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-theme="ano-novo"] {
+  --background: oklch(0.12 0.02 265);
+  --surface: oklch(0.16 0.025 265);
+  --card: oklch(0.18 0.03 265);
+  --popover: oklch(0.17 0.03 265);
+  --secondary: oklch(0.24 0.03 265);
+  --muted: oklch(0.22 0.03 265);
+  --primary: oklch(0.86 0.14 85);
+  --primary-foreground: oklch(0.18 0.03 265);
+  --accent: oklch(0.92 0.02 250);
+  --accent-foreground: oklch(0.18 0.03 265);
+}
+[data-theme="halloween"] {
+  --background: oklch(0.12 0.02 300);
+  --surface: oklch(0.16 0.03 300);
+  --card: oklch(0.18 0.035 300);
+  --popover: oklch(0.17 0.035 300);
+  --secondary: oklch(0.24 0.04 300);
+  --muted: oklch(0.22 0.035 300);
+  --primary: oklch(0.74 0.19 52);
+  --primary-foreground: oklch(0.15 0.03 300);
+  --accent: oklch(0.62 0.26 305);
+  --accent-foreground: oklch(0.98 0 0);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    transition: background-color .6s ease;
+  }
+  h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: 0; }
+  h1, h2, h3 { overflow-wrap: anywhere; }
+  ::selection { background: var(--primary); color: var(--primary-foreground); }
+}
+
+@utility text-gradient-brand {
+  padding-inline: .08em;
+  margin-inline: -.08em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+@utility bg-gradient-brand { background: var(--gradient-brand); }
+@utility bg-stage { background: var(--gradient-stage); }
+@utility bg-fade { background: var(--gradient-fade); }
+@utility shadow-glow { box-shadow: var(--glow-primary); }
+@utility shadow-glow-accent { box-shadow: var(--glow-accent); }
+@utility glass {
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--color-border);
+}
+@utility grain {
+  &::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: .06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+@utility product-shot {
+  filter: drop-shadow(0 30px 30px rgb(0 0 0 / .55)) drop-shadow(0 0 28px color-mix(in oklab, var(--stage, var(--primary)) 35%, transparent));
+}
+@utility animate-float { animation: float 5s ease-in-out infinite; }
+@utility animate-marquee { animation: marquee 28s linear infinite; }
+@utility animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+@utility animate-rise { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+@keyframes float { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-14px) rotate(-1deg); } }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes pulse-glow { 0%,100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 60%, transparent); } 50% { box-shadow: 0 0 0 12px transparent; } }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes fall { from { transform: translateY(-10vh) translateX(0) rotate(0); } to { transform: translateY(110vh) translateX(40px) rotate(360deg); } }
+@keyframes twinkle { 0%,100% { opacity: 0; transform: scale(.4); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes drift { 0% { transform: translate(0,0); } 50% { transform: translate(30px,-20px); } 100% { transform: translate(0,0); } }
+
+.decor-particle { position: absolute; top: -10vh; animation: fall linear infinite; color: var(--accent); }
+.decor-spark { position: absolute; animation: twinkle ease-in-out infinite; color: var(--primary); }
+.decor-bat { position: absolute; animation: drift ease-in-out infinite; color: var(--accent); }
+
+.christmas-only { display: none; }
+.brand-logo { max-width: 256px; }
+.brand-logo img:first-child { image-rendering: auto; }
+.winter-snow { mask-image: linear-gradient(to right, var(--foreground), transparent 24%, transparent 76%, var(--foreground)); }
+.winter-snow .decor-particle { opacity: .4; }
+[data-theme="natal"] .animate-float { animation-name: winter-float; }
+@keyframes winter-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+[data-theme="natal"] .christmas-only { display: block; }
+[data-theme="natal"] .non-christmas { display: none; }
+.logo-hat { position: absolute; width: 46px; height: 46px; top: -22px; left: -8px; transform: rotate(-16deg); pointer-events: none; }
+.festive-button-hat { position: absolute; width: 36px; height: 36px; right: -10px; top: -21px; transform: rotate(15deg); pointer-events: none; }
+.winter-ribbon { border-block: 1px solid var(--border); color: var(--accent); background: var(--surface); }
+.winter-heading { font-size: 44px; line-height: 1.15; }
+.winter-heading strong { color: var(--primary); font-weight: 900; }
+.winter-cover { position: relative; isolation: isolate; min-height: 440px; }
+.winter-cover-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+.winter-collection { position: relative; border-bottom: 1px solid var(--border); padding-block: 32px; }
+.winter-collection-image { position: absolute; right: 0; top: 0; width: 40%; height: 100%; object-fit: cover; object-position: right; opacity: .8; pointer-events: none; }
+[data-theme="natal"] .decor-particle { color: var(--background); text-shadow: var(--snow-shadow); }
+[data-theme="natal"] .grain::before { opacity: .018; }
+[data-theme="natal"] .product-shot { filter: drop-shadow(0 12px 12px color-mix(in oklab, var(--accent) 16%, transparent)); }
+[data-theme="natal"] .store-product { border-radius: 8px; box-shadow: var(--festive-shadow); }
+[data-theme="natal"] .store-product:hover { border-color: var(--primary); }
+.store-product h3 { padding-right: .15em; overflow-wrap: anywhere; }
+@media (min-width: 768px) {
+  .winter-heading { font-size: 72px; }
+  .winter-cover { min-height: 560px; }
+}
+@media (max-width: 767px) {
+  .winter-cover-image { object-position: 65% center; opacity: .35; }
+  .winter-collection-image { opacity: .15; width: 65%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

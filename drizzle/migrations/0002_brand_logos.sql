@@ -1,0 +1,1 @@
+ALTER TABLE public.categories ADD COLUMN logo_url text;

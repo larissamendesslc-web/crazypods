@@ -1,0 +1,3 @@
+ALTER TABLE public.orders ADD COLUMN asaas_checkout_id uuid, ADD COLUMN asaas_checkout_url text, ADD COLUMN asaas_checkout_state text, ADD COLUMN asaas_creation_started_at timestamptz;
+ALTER TABLE public.orders ADD CONSTRAINT orders_asaas_state_check CHECK (asaas_checkout_state IS NULL OR asaas_checkout_state IN ('creating','active','paid','canceled','expired','uncertain'));
+COMMENT ON COLUMN public.orders.asaas_checkout_state IS 'Server-managed Asaas checkout creation and financial state; uncertain requests must not be recreated automatically.';
