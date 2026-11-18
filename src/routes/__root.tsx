@@ -12,7 +12,6 @@ import { AuthProvider } from "@/lib/auth";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { CartDrawer, FloatingCart } from "@/components/site/CartDrawer";
-import { AgeGate } from "@/components/site/AgeGate";
 import { ThemeDecor, useThemeSync } from "@/components/site/ThemeDecor";
 
 function NotFoundComponent() {
@@ -50,7 +49,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#07070a" },
       { title: "Crazy — Sinta o impacto" },
-      { name: "description", content: "Crazy: pods e vapes das melhores marcas com entrega rápida." },
+      { name: "description", content: "Crazy: loja online com ofertas, produtos e entrega rápida." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -87,7 +86,6 @@ function StoreChrome() {
   if (isAdmin) return <Outlet />;
   return (
     <>
-      <AgeGate />
       <ThemeDecor theme={theme} />
       <PaymentTestModeBanner />
       <Header />

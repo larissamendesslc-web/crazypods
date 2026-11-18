@@ -17,7 +17,7 @@ export const Route = createFileRoute("/produto/$id")({
       { title: "Produto — Crazy" },
       { name: "description", content: "Escolha o sabor, a quantidade e adicione ao carrinho na Crazy." },
       { property: "og:title", content: "Produto Crazy" },
-      { property: "og:description", content: "Veja sabores, detalhes e compre na Crazy." },
+      { property: "og:description", content: "Veja características, detalhes e compre na Crazy." },
       { property: "og:type", content: "product" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -64,7 +64,7 @@ function ProductPage() {
         <div className="min-w-0 animate-rise">
           {brand && <Link to="/loja" search={{ marca: brand.slug }} className="text-xs font-bold uppercase tracking-[.3em] text-primary">{brand.name}</Link>}
           <h1 className="mt-2 text-3xl font-black leading-tight sm:text-5xl">{p.name}</h1>
-          {p.puffs && <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-bold"><Zap className="h-3.5 w-3.5 text-primary" /> {p.puffs} puffs</p>}
+          {p.puffs && <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-bold"><Zap className="h-3.5 w-3.5 text-primary" /> {p.puffs}</p>}
           <div className="mt-5 flex flex-wrap items-end gap-3">
             <span className="max-w-full break-words font-display text-3xl font-black sm:text-4xl">{formatBRL(Number(p.price))}</span>
             {p.compare_price && Number(p.compare_price) > Number(p.price) && <span className="pb-1 text-lg text-muted-foreground line-through">{formatBRL(Number(p.compare_price))}</span>}

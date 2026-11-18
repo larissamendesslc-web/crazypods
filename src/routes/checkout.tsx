@@ -48,8 +48,18 @@ function Checkout() {
   const cart = useCart();
   const qc = useQueryClient();
   const [done, setDone] = useState<Order | null>(null);
+  const paymentAvailability = useQuery({
+    queryKey: ["payment-availability", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("store_checkout_availability");
+      if (error) return false;
+      return data?.[0]?.online_enabled === true;
+    },
+    staleTime: 30_000,
+  });
+
   const navigate = useNavigate();
-  const [method, setMethod] = useState<string>("online");
+  const [method, setMethod] = useState<string>("dinheiro");
   const [needChange, setNeedChange] = useState(false);
   const [changeFor, setChangeFor] = useState("");
   const [notes, setNotes] = useState("");
@@ -86,6 +96,9 @@ function Checkout() {
 
   const submit = async () => {
     if (!user) return;
+    if (method === "online" && paymentAvailability.data !== true) {
+      toast.error("A loja ainda não habilitou pagamentos online no Asaas."); return;
+    }
     if (!delivery || Date.parse(delivery.expiresAt) <= Date.now()) { setDelivery(null); toast.error("Calcule o frete antes de confirmar"); return; }
     const parsed = deliverySchema.safeParse(form);
     if (!parsed.success) { toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos"); return; }
@@ -144,12 +157,13 @@ function Checkout() {
                 <h2 className="mb-5 font-display text-lg font-bold">2. Pagamento</h2>
                 <div className="grid grid-cols-2 gap-2">
                   {METHODS.map(({ id, label, hint, icon: Icon }) => (
-                    <button key={id} onClick={() => setMethod(id)} className={`flex flex-col items-center gap-1.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all ${method === id ? "border-primary bg-primary/10 shadow-glow" : "text-muted-foreground"}`}>
+                    <button key={id} disabled={id === "online" && paymentAvailability.data !== true} onClick={() => setMethod(id)} className={`flex flex-col items-center gap-1.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all ${method === id ? "border-primary bg-primary/10 shadow-glow" : "text-muted-foreground"}`}>
                       <Icon className={`h-6 w-6 ${method === id ? "text-primary" : ""}`} /> {label}
                       <span className="text-[10px] font-medium text-muted-foreground">{hint}</span>
                     </button>
                   ))}
                 </div>
+                {paymentAvailability.data !== true && <p className="mt-2 text-xs text-muted-foreground">Pagamento online será liberado depois que a loja conectar a conta Asaas.</p>}
                 {method === "dinheiro" && (
                   <div className="mt-4 space-y-3 rounded-2xl border bg-secondary/40 p-4">
                     <div className="flex gap-2">

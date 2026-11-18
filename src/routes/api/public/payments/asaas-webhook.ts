@@ -48,5 +48,5 @@ export const Route=createFileRoute("/api/public/payments/asaas-webhook")({
    console.error("Webhook Asaas: evento recusado",e instanceof Error?e.name:"unknown");
    return new Response("Webhook processing failed",{status:500});
   }
- }}}}
+ }}}
 });

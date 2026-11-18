@@ -12,10 +12,10 @@ import christmasHat from "@/assets/christmas-hat.png";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Crazy — Sinta o impacto | Pods e vapes" },
+      { title: "Crazy — Sua loja de produtos e ofertas" },
       { name: "description", content: "Ignite, Elfbar, LostMary, Waka e mais. Escolha seu sabor e receba rápido na Crazy." },
       { property: "og:title", content: "Crazy — Sinta o impacto" },
-      { property: "og:description", content: "As melhores marcas de pods num só lugar, com entrega rápida." },
+      { property: "og:description", content: "Produtos selecionados e entrega rápida na sua região." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -56,7 +56,7 @@ function Home() {
               Sinta<br /><span className="text-gradient-brand">o impacto</span>
             </h1>
             <p className="mt-6 max-w-md text-base text-muted-foreground sm:text-lg">
-              As marcas mais desejadas, os sabores mais insanos. Escolha, peça e receba rápido.
+              Os produtos que você procura, com facilidade para escolher, comprar e receber.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="neon" size="xl"><Link to="/loja" search={{}}>Comprar agora <ArrowRight /></Link></Button>

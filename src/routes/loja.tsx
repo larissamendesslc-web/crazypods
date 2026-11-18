@@ -14,7 +14,7 @@ export const Route = createFileRoute("/loja")({
   head: () => ({
     meta: [
       { title: "Loja — Crazy" },
-      { name: "description", content: "Todos os pods e vapes da Crazy. Filtre por marca e escolha seu sabor." },
+      { name: "description", content: "Confira todos os produtos da loja. Filtre por categoria e escolha sua opção." },
       { property: "og:title", content: "Loja Crazy" },
       { property: "og:description", content: "Filtre por marca e encontre seu próximo sabor favorito." },
       { property: "og:type", content: "website" },

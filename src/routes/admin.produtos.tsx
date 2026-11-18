@@ -159,7 +159,7 @@ function ProductDialog({ draft, setDraft, cats }: { draft: Draft; setDraft: (d: 
                   <SelectContent><SelectItem value="none">Sem marca</SelectItem>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </Fld>
-              <Fld label="Puffs"><Input value={draft.puffs} onChange={(e) => set("puffs", e.target.value)} placeholder="Ex: 10.000" /></Fld>
+              <Fld label="Modelo / características"><Input value={draft.puffs} onChange={(e) => set("puffs", e.target.value)} placeholder="Ex.: modelo 2026" /></Fld>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Fld label="Preço (R$)"><Input inputMode="decimal" value={draft.price} onChange={(e) => set("price", e.target.value)} /></Fld>
@@ -167,7 +167,7 @@ function ProductDialog({ draft, setDraft, cats }: { draft: Draft; setDraft: (d: 
               <Fld label="Custo (R$)"><Input inputMode="decimal" value={draft.cost} onChange={(e) => set("cost", e.target.value)} /></Fld>
               <Fld label="Estoque"><Input inputMode="numeric" value={draft.stock} onChange={(e) => set("stock", e.target.value)} /></Fld>
             </div>
-            <Fld label="Sabores (separe por vírgula)">
+            <Fld label="Variações (separe por vírgula)">
               <div className="flex gap-2">
                 <Input value={flavorInput} onChange={(e) => setFlavorInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFlavor(); } }} placeholder="Uva, Menta, Morango Ice" />
                 <Button type="button" variant="secondary" onClick={addFlavor}>Adicionar</Button>
