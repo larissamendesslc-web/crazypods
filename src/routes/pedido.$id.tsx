@@ -45,8 +45,8 @@ function OrderPage() {
   const [checking, setChecking] = useState(false);
   const [waitingLong, setWaitingLong] = useState(false);
   const q = useQuery({
-    queryKey: ["order", id],
-    enabled: !!user,
+    queryKey: ["order", id, user?.id ?? null],
+    enabled: ready && !!user?.id,
     queryFn: async () => { const { data, error } = await supabase.from("orders").select("*").eq("id", id).maybeSingle(); if (error) throw error; return data as Order | null; },
     refetchInterval: (query) => query.state.data && !["entregue", "cancelado"].includes(query.state.data.status) ? (session_id && query.state.data.status === "pendente" ? 2500 : 10000) : false,
   });
@@ -79,7 +79,21 @@ function OrderPage() {
   if (!user) return <Center><p>Entre na sua conta para ver o pedido.</p><Button asChild variant="neon" className="mt-4"><Link to="/conta">Entrar</Link></Button></Center>;
   if (q.error) return <Center><p role="alert">Não foi possível carregar o pedido.</p><Button onClick={() => void q.refetch()} className="mt-4">Tentar novamente</Button></Center>;
   const order = q.data;
-  if (!order) return <Center><p>Pedido não encontrado.</p></Center>;
+  if (!order) return (
+    <Center>
+      <h1 className="font-display text-2xl font-bold">Pedido indisponível nesta conta</h1>
+      <p className="mt-3 max-w-md text-center text-sm text-muted-foreground">
+        Por segurança, cada pedido só aparece para quem fez a compra ou para a administração da loja.
+        Se você entrou com a conta do motoboy para testar a entrega, sua sessão anterior foi substituída.
+        Entre novamente com a conta utilizada na compra para acompanhar o pedido.
+      </p>
+      {user.email && <p className="mt-3 text-xs text-muted-foreground">Conta atual: {user.email}</p>}
+      <Button className="mt-6" variant="neon" onClick={() => void supabase.auth.signOut()}>
+        Trocar de conta
+      </Button>
+      <Button asChild variant="outline" className="mt-3"><Link to="/conta">Ver meus pedidos</Link></Button>
+    </Center>
+  );
   if (order.status === "cancelado") return (
     <Center>
       <XCircle className="h-14 w-14 text-destructive" />

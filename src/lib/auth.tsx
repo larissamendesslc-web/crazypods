@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,19 +10,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const qc = useQueryClient();
+  const activeAccountId = useRef<string | null>(null);
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
-      setSession(s);
-      setReady(true);
-      if (event === "SIGNED_OUT") {
+      const nextId = s?.user.id ?? null;
+      const accountChanged = activeAccountId.current !== nextId;
+      activeAccountId.current = nextId;
+      // Orders, deliveries and profile queries contain private data. Never
+      // reuse them after switching from customer/admin to courier (or back).
+      if (accountChanged || event === "SIGNED_OUT") {
         void qc.cancelQueries();
         qc.clear();
       } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        qc.invalidateQueries({ queryKey: ["me"] });
+        void qc.invalidateQueries({ queryKey: ["me"] });
       }
+      setSession(s);
+      setReady(true);
     });
     supabase.auth.getSession().then(({ data: d }) => {
+      const nextId = d.session?.user.id ?? null;
+      if (activeAccountId.current !== nextId) {
+        activeAccountId.current = nextId;
+        void qc.cancelQueries();
+        qc.clear();
+      }
       setSession(d.session);
       setReady(true);
     });
