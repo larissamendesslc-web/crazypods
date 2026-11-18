@@ -128,9 +128,23 @@ export const createOrderCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid(), origin: z.string().url() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: order, error } = await context.supabase.from("orders").select("id,user_id,code,total,status,payment_method,payment_ref,asaas_checkout_id,asaas_checkout_url,asaas_checkout_state").eq("id", data.orderId).eq("user_id", context.userId).maybeSingle();
+    const { data: order, error } = await context.supabase.from("orders").select("id,user_id,code,total,status,payment_method,payment_ref,asaas_checkout_id,asaas_checkout_url,asaas_checkout_state,items").eq("id", data.orderId).eq("user_id", context.userId).maybeSingle();
     if (error || !order) return { error: "Pedido não encontrado" };
     if (order.status !== "pendente" || order.payment_method !== "online") return { error: "Este pedido não aguarda pagamento" };
+    // Do not generate charges for archived products or historical pod orders.
+    const parsedItems = z.array(z.object({ product_id: z.string().uuid() })).safeParse(order.items);
+    if (!parsedItems.success || parsedItems.data.length === 0) return { error: "Este pedido não contém itens válidos." };
+    const productIds = [...new Set(parsedItems.data.map((item) => item.product_id))];
+    const { data: available, error: availabilityError } = await context.supabase
+      .from("products").select("id").in("id", productIds).eq("active", true);
+    if (availabilityError || available?.length !== productIds.length) {
+      return { error: "Este pedido contém produtos retirados do catálogo. Crie um novo pedido." };
+    }
+    if (!process.env["ASAAS_SANDBOX_API_KEY"] ||
+        !process.env["ASAAS_TEST_WEBHOOK_TOKEN"] ||
+        !process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
+      return { error: "Pagamento Sandbox indisponível até concluir a integração no painel administrativo." };
+    }
     if (order.payment_ref?.startsWith("cs_")) return { error: "Este pedido já tem cobrança Stripe. Verifique o pagamento antes de criar outro pedido." };
     if (order.asaas_checkout_id) {
       if (order.asaas_checkout_state !== "active") return { error: "Esta cobrança não está disponível. Verifique o pagamento ou consulte a loja." };

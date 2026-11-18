@@ -17,6 +17,7 @@ describe("Asaas order confirmation", () => {
   });
   it("rejects external redirect origins", () => {
     expect(paymentReturnUrl("https://flavor-flock-market.lovable.app", id)).toContain(`/pedido/${id}`);
+    expect(paymentReturnUrl("https://crazypods.vercel.app", id)).toContain(`/pedido/${id}`);
     expect(() => paymentReturnUrl("https://evil.example", id)).toThrow();
   });
 });

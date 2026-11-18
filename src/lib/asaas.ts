@@ -22,6 +22,9 @@ export function paymentReturnUrl(origin: string, id: string) {
   const url = new URL(origin);
   const allowed = url.origin === "http://localhost:8080" ||
     (url.protocol === "https:" && (url.hostname === "flavor-flock-market.lovable.app" ||
+      url.hostname === "crazypods.vercel.app" ||
+      url.hostname === "crazypods-pmerj.vercel.app" ||
+      /^crazypods-[a-z0-9]+-pmerj\.vercel\.app$/.test(url.hostname) ||
       /^id-preview(?:-[a-z0-9]+)?--12827ac0-438c-42ab-8df6-40550c5cd1fd(?:\.[a-z0-9-]+)?\.lovable\.app$/.test(url.hostname)));
   if (!allowed) throw new Error("Endereço de retorno inválido");
   return `${url.origin}/pedido/${z.string().uuid().parse(id)}?payment_return=1`;
