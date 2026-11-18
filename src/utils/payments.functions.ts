@@ -3,7 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { z } from "zod";
 import { verifiedOrderPayment } from "@/lib/payment-confirmation";
-import { AsaasError, asaasRequest, findPaidAsaasPayment } from "@/lib/asaas.server";
+import { findPaidAsaasPayment } from "@/lib/asaas.server";
+import { AsaasApiError, asaasApiRequest, backendRpc, getGateway, getSiteUrl } from "@/lib/gateway.server";
 import { asaasCheckoutSchema, asaasCheckoutLink, paymentReturnUrl } from "@/lib/asaas";
 
 type Result = { clientSecret: string } | { error: string };
@@ -19,9 +20,9 @@ export const confirmOrderPayment = createServerFn({ method: "POST" })
       if (order.asaas_checkout_id) {
         const payment = await findPaidAsaasPayment(order.asaas_checkout_id, Number(order.total));
         if (!payment) return { status: "pendente" };
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { error: confirmError } = await supabaseAdmin.rpc("confirm_online_payment", { _order_id: order.id, _paid: true, _ref: `asaas:sandbox:${order.asaas_checkout_id}` });
-        if (confirmError) throw confirmError;
+        await backendRpc("backend_confirm_checkout", {
+          _order_id: order.id, _checkout_id: order.asaas_checkout_id, _paid: true, _state: "paid"
+        });
         const { data: updated, error: readError } = await context.supabase.from("orders").select("status").eq("id", order.id).single();
         if (readError) throw readError;
         return { status: updated.status };
@@ -122,52 +123,49 @@ export const createLegacyStripeCheckout = createServerFn({ method: "POST" })
     }
   });
 
-// Asaas does not document create-checkout idempotency. Claim creation atomically;
-// an ambiguous timeout remains locked until reconciled, never silently retried.
-export const createOrderCheckout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid(), origin: z.string().url() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { data: order, error } = await context.supabase.from("orders").select("id,user_id,code,total,status,payment_method,payment_ref,asaas_checkout_id,asaas_checkout_url,asaas_checkout_state,items").eq("id", data.orderId).eq("user_id", context.userId).maybeSingle();
-    if (error || !order) return { error: "Pedido não encontrado" };
-    if (order.status !== "pendente" || order.payment_method !== "online") return { error: "Este pedido não aguarda pagamento" };
-    // Do not generate charges for archived products or historical pod orders.
-    const parsedItems = z.array(z.object({ product_id: z.string().uuid() })).safeParse(order.items);
-    if (!parsedItems.success || parsedItems.data.length === 0) return { error: "Este pedido não contém itens válidos." };
-    const productIds = [...new Set(parsedItems.data.map((item) => item.product_id))];
-    const { data: available, error: availabilityError } = await context.supabase
-      .from("products").select("id").in("id", productIds).eq("active", true);
-    if (availabilityError || available?.length !== productIds.length) {
-      return { error: "Este pedido contém produtos retirados do catálogo. Crie um novo pedido." };
-    }
-    if (!process.env["ASAAS_SANDBOX_API_KEY"] ||
-        !process.env["ASAAS_TEST_WEBHOOK_TOKEN"] ||
-        !process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
-      return { error: "Pagamento Sandbox indisponível até concluir a integração no painel administrativo." };
-    }
-    if (order.payment_ref?.startsWith("cs_")) return { error: "Este pedido já tem cobrança Stripe. Verifique o pagamento antes de criar outro pedido." };
-    if (order.asaas_checkout_id) {
-      if (order.asaas_checkout_state !== "active") return { error: "Esta cobrança não está disponível. Verifique o pagamento ou consulte a loja." };
-      return { checkoutUrl: order.asaas_checkout_url ?? asaasCheckoutLink(order.asaas_checkout_id) };
-    }
-    const returnUrl = paymentReturnUrl(data.origin, order.id);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: claim, error: claimError } = await supabaseAdmin.from("orders").update({ asaas_checkout_state: "creating", asaas_creation_started_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pendente").is("asaas_checkout_state", null).select("id").maybeSingle();
-    if (claimError || !claim) return { error: "A cobrança está sendo preparada ou precisa de verificação. Não pague novamente; consulte a loja." };
-    try {
-      const checkout = asaasCheckoutSchema.parse(await asaasRequest("/checkouts", {
-        billingTypes: ["PIX", "CREDIT_CARD"], chargeTypes: ["DETACHED"], minutesToExpire: 60,
-        externalReference: order.id,
-        callback: { successUrl: returnUrl, cancelUrl: returnUrl, expiredUrl: returnUrl },
-        items: [{ name: `Pedido Crazy #${order.code}`.slice(0, 30), description: "Produtos e entrega", quantity: 1, value: Number(order.total) }],
-      }));
-      const checkoutUrl = asaasCheckoutLink(checkout.id);
-      const { error: saveError } = await supabaseAdmin.from("orders").update({ asaas_checkout_id: checkout.id, asaas_checkout_url: checkoutUrl, asaas_checkout_state: "active", payment_ref: `asaas:sandbox:${checkout.id}` }).eq("id", order.id).eq("asaas_checkout_state", "creating");
-      if (saveError) throw saveError;
-      return { checkoutUrl };
-    } catch (e) {
-      const definitive = e instanceof AsaasError && e.status === 400;
-      await supabaseAdmin.from("orders").update({ asaas_checkout_state: definitive ? null : "uncertain" }).eq("id", order.id).eq("asaas_checkout_state", "creating");
-      return { error: definitive && e instanceof Error ? e.message : "Não foi possível confirmar a criação da cobrança. Consulte a loja antes de tentar novamente." };
-    }
-  });
+
+// Backend-claimed checkout prevents duplicate charges after network timeouts.
+export const createOrderCheckout=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>z.object({orderId:z.string().uuid(),origin:z.string().url().optional()}).parse(input))
+ .handler(async({data,context})=>{
+  const {data:order,error}=await context.supabase.from("orders")
+   .select("id,user_id,code,total,status,payment_method,payment_ref,asaas_checkout_id,asaas_checkout_url,asaas_checkout_state,items")
+   .eq("id",data.orderId).eq("user_id",context.userId).maybeSingle();
+  if(error||!order)return{error:"Pedido não encontrado"};
+  if(order.payment_method!=="online"||order.status!=="pendente")return{error:"Este pedido não aguarda pagamento"};
+  if(order.payment_ref?.startsWith("cs_"))return{error:"Pedido com cobrança anterior. Consulte a loja."};
+  const items=z.array(z.object({product_id:z.string().uuid()})).safeParse(order.items);
+  if(!items.success||items.data.length===0)return{error:"Pedido sem produtos válidos."};
+  const ids=[...new Set(items.data.map(i=>i.product_id))];
+  const {data:available,error:productError}=await context.supabase.from("products").select("id").in("id",ids).eq("active",true);
+  if(productError||available?.length!==ids.length)return{error:"Produto retirado do catálogo. Faça um novo pedido."};
+  try{
+   const gateway=await getGateway();
+   if(!gateway.webhookConfigured)return{error:"Configure a confirmação automática no painel antes de aceitar pagamentos."};
+   if(order.asaas_checkout_id){
+    if(order.asaas_checkout_state!=="active")return{error:"Cobrança anterior não está ativa. Consulte a loja."};
+    return{checkoutUrl:order.asaas_checkout_url??asaasCheckoutLink(order.asaas_checkout_id,gateway.mode)};
+   }
+   const returnUrl=paymentReturnUrl(getSiteUrl(),order.id);
+   const claimed=await backendRpc<boolean>("backend_claim_checkout",{_order_id:order.id,_user_id:context.userId});
+   if(!claimed)return{error:"A cobrança está sendo preparada ou requer verificação. Não pague novamente."};
+   try{
+    const checkout=asaasCheckoutSchema.parse(await asaasApiRequest(gateway.apiKey,gateway.mode,"/checkouts",{
+     billingTypes:["PIX","CREDIT_CARD"],chargeTypes:["DETACHED"],minutesToExpire:60,externalReference:order.id,
+     callback:{successUrl:returnUrl,cancelUrl:returnUrl,expiredUrl:returnUrl},
+     items:[{name:`Pedido Crazy #${order.code}`.slice(0,30),description:"Produtos e entrega",quantity:1,value:Number(order.total)}],
+    }));
+    const url=asaasCheckoutLink(checkout.id,gateway.mode);
+    const saved=await backendRpc<boolean>("backend_save_checkout",{_order_id:order.id,_checkout_id:checkout.id,_url:url});
+    if(!saved)throw new Error("Cobrança gerada mas não registrada; consulte a loja.");
+    return{checkoutUrl:url};
+   }catch(e){
+    const definitive=e instanceof AsaasApiError&&e.status===400;
+    await backendRpc("backend_checkout_failure",{_order_id:order.id,_definitive:definitive});
+    return{error:definitive&&e instanceof Error?e.message:"Falha ao registrar a cobrança. Consulte a loja antes de tentar novamente."};
+   }
+  }catch(e){
+   return{error:e instanceof Error?e.message:"Pagamento indisponível"};
+  }
+ });

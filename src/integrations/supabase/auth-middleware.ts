@@ -31,7 +31,14 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
+export const requireSupabaseAuth = createMiddleware({ type: 'function' })
+  .client(async ({ next }) => {
+    const { supabase } = await import("./client");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Faça login para continuar");
+    return next({ headers: { Authorization: `Bearer ${session.access_token}` } });
+  })
+  .server(
   async ({ next }) => {
     
     const SUPABASE_URL = process.env['SUPABASE_URL'];

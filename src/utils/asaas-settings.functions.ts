@@ -1,74 +1,80 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { asaasRequest } from "@/lib/asaas.server";
+import { asaasApiRequest, backendRpc, encryptGatewaySecret, getGateway, getSiteUrl } from "@/lib/gateway.server";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 
-const WEBHOOK_URL = "https://crazypods.vercel.app/api/public/payments/asaas-webhook";
-
-export const checkAsaasConnection = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data: admin, error } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId, _role: "admin",
-    });
-    if (error || !admin) throw new Error("Acesso restrito");
-    const response = z.object({
-      data: z.array(z.object({ id: z.string(), url: z.string() })),
-    }).parse(await asaasRequest("/webhooks?limit=100"));
-    return {
-      connected: true,
-      environment: "sandbox" as const,
-      webhookConfigured: response.data.some((hook) => hook.url === WEBHOOK_URL),
-      serverReady: Boolean(process.env["SUPABASE_SERVICE_ROLE_KEY"] && process.env["ASAAS_TEST_WEBHOOK_TOKEN"]),
-    };
-  });
-
-export const configureAsaasWebhook = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ preview: z.boolean().optional() }).parse(input))
-  .handler(async ({ context }) => {
-    const { data: admin, error } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId, _role: "admin",
-    });
-    if (error || !admin) throw new Error("Acesso restrito");
-
-    const token = process.env["ASAAS_TEST_WEBHOOK_TOKEN"];
-    if (!token || token.length < 32) throw new Error("Token de webhook não configurado na Vercel");
-    if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
-      throw new Error("Configure SUPABASE_SERVICE_ROLE_KEY na Vercel antes de ativar a confirmação dos pedidos.");
-    }
-
-    const { data: auth } = await context.supabase.auth.getUser();
-    if (!auth.user?.email) throw new Error("E-mail do administrador indisponível");
-
-    // Only allow the known production callback, never a browser-supplied URL.
-    const probe = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-      signal: AbortSignal.timeout(15000),
-    });
-    if (probe.status !== 401) {
-      throw new Error("O endpoint de confirmação ainda não está pronto; não ative pagamentos.");
-    }
-
-    const list = z.object({
-      data: z.array(z.object({ id: z.string(), url: z.string() })),
-    }).parse(await asaasRequest("/webhooks?limit=100"));
-    if (list.data.some((hook) => hook.url === WEBHOOK_URL)) {
-      return { configured: true, existing: true, message: "Webhook existente: confira se o token coincide no Asaas." };
-    }
-
-    await asaasRequest("/webhooks", {
-      name: "Crazy pagamentos sandbox",
-      url: WEBHOOK_URL,
-      email: auth.user.email,
-      enabled: true,
-      interrupted: false,
-      apiVersion: 3,
-      authToken: token,
-      sendType: "SEQUENTIALLY",
-      events: ["CHECKOUT_PAID", "CHECKOUT_CANCELED", "CHECKOUT_EXPIRED", "PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"],
-    });
-    return { configured: true, existing: false, message: "Webhook Sandbox criado e protegido." };
-  });
+const inputSchema=z.object({
+  mode:z.enum(["sandbox","live"]),
+  apiKey:z.string().trim().min(20).max(500),
+  notificationEmail:z.string().trim().email(),
+});
+const webhookEvents=["CHECKOUT_PAID","CHECKOUT_CANCELED","CHECKOUT_EXPIRED","PAYMENT_RECEIVED","PAYMENT_CONFIRMED"];
+async function ensureAdmin(context:{supabase:any;userId:string}){
+  const {data,error}=await context.supabase.rpc("has_role",{_user_id:context.userId,_role:"admin"});
+  if(error||!data)throw new Error("Somente administrador pode integrar pagamentos");
+}
+async function installWebhook(email:string){
+  const gateway=await getGateway();
+  const url=getSiteUrl()+"/api/public/payments/asaas-webhook";
+  const probe=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}",signal:AbortSignal.timeout(15000)});
+  if(probe.status!==401)throw new Error("Endpoint de confirmação não está pronto para receber eventos");
+  const list=z.object({data:z.array(z.object({id:z.string(),url:z.string()}))}).parse(
+    await asaasApiRequest(gateway.apiKey,gateway.mode,"/webhooks?limit=100"));
+  const existing=list.data.find(h=>h.url===url);
+  const body={
+    name:"Confirmação automática da loja",url,email,enabled:true,interrupted:false,
+    apiVersion:3,authToken:gateway.webhookToken,sendType:"SEQUENTIALLY",events:webhookEvents,
+  };
+  const hook=z.object({id:z.string()}).parse(
+    await asaasApiRequest(gateway.apiKey,gateway.mode,
+      existing?`/webhooks/${encodeURIComponent(existing.id)}`:"/webhooks",
+      body,existing?"PUT":"POST"));
+  await backendRpc("backend_mark_webhook",{_webhook_id:hook.id});
+}
+export const getAsaasIntegrationStatus=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .handler(async({context})=>{
+  await ensureAdmin(context);
+  const {data,error}=await context.supabase.rpc("admin_payment_status" as never);
+  if(error)throw new Error("Falha na consulta de integração");
+  return ((data as any)?.[0]??{connected:false,mode:null,webhook_configured:false,configured_at:null}) as
+   {connected:boolean;mode:"sandbox"|"live"|null;webhook_configured:boolean;configured_at:string|null};
+ });
+export const connectAsaasAccount=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>inputSchema.parse(input))
+ .handler(async({data,context})=>{
+  await ensureAdmin(context);
+  await asaasApiRequest(data.apiKey,data.mode,"/myAccount/status");
+  const hookSecret=randomBytes(48).toString("base64url");
+  const {error}=await context.supabase.rpc("admin_save_gateway" as never,{
+    _mode:data.mode,
+    _key_ciphertext:encryptGatewaySecret(data.apiKey),
+    _webhook_ciphertext:encryptGatewaySecret(hookSecret),
+  } as never);
+  if(error)throw new Error("A conexão foi validada, mas não foi possível salvar os dados protegidos");
+  try{
+    await installWebhook(data.notificationEmail);
+    return {connected:true,webhookConfigured:true,mode:data.mode,message:"Asaas conectado e confirmação automática configurada."};
+  }catch(e){
+    return {connected:true,webhookConfigured:false,mode:data.mode,
+      message:"Asaas conectado. Falta concluir o webhook: "+(e instanceof Error?e.message:"erro")};
+  }
+ });
+export const configureAsaasWebhook=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>z.object({notificationEmail:z.string().trim().email()}).parse(input))
+ .handler(async({data,context})=>{
+  await ensureAdmin(context);
+  await installWebhook(data.notificationEmail);
+  return {configured:true,message:"Webhook configurado e testado."};
+ });
+export const verifyAsaasConnection=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .handler(async({context})=>{
+  await ensureAdmin(context);
+  const gateway=await getGateway();
+  await asaasApiRequest(gateway.apiKey,gateway.mode,"/myAccount/status");
+  return {connected:true,mode:gateway.mode,webhookConfigured:gateway.webhookConfigured};
+ });

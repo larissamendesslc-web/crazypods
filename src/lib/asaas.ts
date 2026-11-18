@@ -15,13 +15,14 @@ export function verifiedAsaasPayment(payment: AsaasPayment, checkoutId: string, 
     Math.round(payment.value * 100) === Math.round(total * 100) &&
     (payment.status === "RECEIVED" || (payment.status === "CONFIRMED" && payment.billingType === "CREDIT_CARD"));
 }
-export function asaasCheckoutLink(id: string) {
-  return `https://sandbox.asaas.com/checkoutSession/show?id=${z.string().uuid().parse(id)}`;
+export function asaasCheckoutLink(id: string, mode: "sandbox" | "live" = "sandbox") {
+  const base = mode === "sandbox" ? "https://sandbox.asaas.com" : "https://asaas.com";
+  return `${base}/checkoutSession/show?id=${z.string().uuid().parse(id)}`;
 }
 export function paymentReturnUrl(origin: string, id: string) {
   const url = new URL(origin);
   const allowed = url.origin === "http://localhost:8080" ||
-    (url.protocol === "https:" && (url.hostname === "flavor-flock-market.lovable.app" ||
+    (url.protocol === "https:" && (url.origin === process.env["SITE_URL"] || url.hostname === "flavor-flock-market.lovable.app" ||
       url.hostname === "crazypods.vercel.app" ||
       url.hostname === "crazypods-pmerj.vercel.app" ||
       /^crazypods-[a-z0-9]+-pmerj\.vercel\.app$/.test(url.hostname) ||
