@@ -142,6 +142,12 @@ export const createOrderCheckout=createServerFn({method:"POST"})
   if(productError||available?.length!==ids.length)return{error:"Produto retirado do catálogo. Faça um novo pedido."};
   try{
    const gateway=await getGateway();
+   if(gateway.mode==="sandbox"){
+    const {data:availability,error:availabilityError}=await context.supabase.rpc("store_checkout_availability" as never);
+    if(availabilityError || !(availability as {online_enabled:boolean}[]|null)?.[0]?.online_enabled){
+     return {error:"Esta conta não está autorizada a criar cobranças Sandbox. Solicite acesso temporário ao administrador."};
+    }
+   }
    if(!gateway.webhookConfigured)return{error:"Configure a confirmação automática no painel antes de aceitar pagamentos."};
    if(order.asaas_checkout_id){
     if(order.asaas_checkout_state!=="active")return{error:"Cobrança anterior não está ativa. Consulte a loja."};

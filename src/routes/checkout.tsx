@@ -50,10 +50,14 @@ function Checkout() {
   const [done, setDone] = useState<Order | null>(null);
   const paymentAvailability = useQuery({
     queryKey: ["payment-availability", user?.id],
+    enabled: ready && !!user,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("store_checkout_availability");
-      if (error) return false;
-      return data?.[0]?.online_enabled === true;
+      if (error) throw error;
+      return {
+        online_enabled: data?.[0]?.online_enabled === true,
+        mode: (data?.[0]?.mode ?? null) as "sandbox" | "live" | null,
+      };
     },
     staleTime: 30_000,
   });
@@ -96,7 +100,7 @@ function Checkout() {
 
   const submit = async () => {
     if (!user) return;
-    if (method === "online" && paymentAvailability.data !== true) {
+    if (method === "online" && paymentAvailability.data?.online_enabled !== true) {
       toast.error("A loja ainda não habilitou pagamentos online no Asaas."); return;
     }
     if (!delivery || Date.parse(delivery.expiresAt) <= Date.now()) { setDelivery(null); toast.error("Calcule o frete antes de confirmar"); return; }
@@ -157,13 +161,23 @@ function Checkout() {
                 <h2 className="mb-5 font-display text-lg font-bold">2. Pagamento</h2>
                 <div className="grid grid-cols-2 gap-2">
                   {METHODS.map(({ id, label, hint, icon: Icon }) => (
-                    <button key={id} disabled={id === "online" && paymentAvailability.data !== true} onClick={() => setMethod(id)} className={`flex flex-col items-center gap-1.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all ${method === id ? "border-primary bg-primary/10 shadow-glow" : "text-muted-foreground"}`}>
+                    <button key={id} disabled={id === "online" && paymentAvailability.data?.online_enabled !== true} onClick={() => setMethod(id)} className={`flex flex-col items-center gap-1.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all ${method === id ? "border-primary bg-primary/10 shadow-glow" : "text-muted-foreground"}`}>
                       <Icon className={`h-6 w-6 ${method === id ? "text-primary" : ""}`} /> {label}
                       <span className="text-[10px] font-medium text-muted-foreground">{hint}</span>
                     </button>
                   ))}
                 </div>
-                {paymentAvailability.data !== true && <p className="mt-2 text-xs text-muted-foreground">Pagamento online será liberado depois que a loja conectar a conta Asaas.</p>}
+                {paymentAvailability.isError && <p role="alert" className="mt-2 text-xs text-destructive">Não foi possível consultar o status do pagamento. Atualize a página e tente novamente.</p>}
+                {paymentAvailability.data?.mode === "sandbox" && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {paymentAvailability.data.online_enabled
+                      ? "AMBIENTE DE TESTES: Pix e cartão são simulados, sem cobrança de dinheiro real. Pedidos de teste podem alterar o estoque e o painel financeiro."
+                      : "Asaas Sandbox conectado, mas este usuário não está autorizado a pagar em testes. O administrador pode liberar este e-mail por 24 horas em Admin → Pagamentos."}
+                  </p>
+                )}
+                {!paymentAvailability.isLoading && paymentAvailability.data?.mode !== "sandbox" && paymentAvailability.data?.online_enabled !== true && (
+                  <p className="mt-2 text-xs text-muted-foreground">Pagamento online será liberado depois que a loja conectar o Asaas de produção e habilitar a confirmação automática.</p>
+                )}
                 {method === "dinheiro" && (
                   <div className="mt-4 space-y-3 rounded-2xl border bg-secondary/40 p-4">
                     <div className="flex gap-2">
