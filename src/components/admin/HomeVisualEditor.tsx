@@ -113,9 +113,9 @@ export function HomeVisualEditor() {
   };
   const save = async()=>{
     const required=["eyebrow","title","highlight","subtitle","primary_label","secondary_label"] as const;
-    if(required.some(k=>!design[k].trim()))return toast.error("Preencha os textos principais da Home.");
-    if(!validHomeLink(design.primary_link)||!validHomeLink(design.secondary_link)||cards.some(c=>!validHomeLink(c.target_link)))return toast.error("Links devem começar com / ou # e apontar para páginas da loja.");
-    if(cards.some(card=>card.active && !card.title.trim()))return toast.error("Destaques ativados precisam de título.");
+    if(required.some(k=>!design[k].trim())){toast.error("Preencha os textos principais da Home.");return;}
+    if(!validHomeLink(design.primary_link)||!validHomeLink(design.secondary_link)||cards.some(c=>!validHomeLink(c.target_link))){toast.error("Links devem começar com / ou # e apontar para páginas da loja.");return;}
+    if(cards.some(card=>card.active && !card.title.trim())){toast.error("Destaques ativados precisam de título.");return;}
     setSaving(true);
     try {
       const {id,updated_at,...data}=design;
