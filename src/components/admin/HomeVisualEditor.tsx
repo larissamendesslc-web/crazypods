@@ -37,7 +37,7 @@ async function optimizeBanner(file: File): Promise<Blob> {
   } finally { bitmap.close(); }
 }
 
-function EditablePicture({
+export function EditablePicture({
   name, value, onChange, removeDefault = true, note, defaultPreview, onProcessingChange,
 }: {
   name: string; value: string | null; onChange: (url: string | null) => void;
