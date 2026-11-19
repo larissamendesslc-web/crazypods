@@ -33,8 +33,8 @@ describe("Flavor Flock Market visual heritage", () => {
     expect(header).toContain('onSubmit={submitSearch}');
     expect(header).toContain('cart.setOpen(true)');
     expect(header).toContain('to="/conta"');
-    expect(header).toContain('href="/#marcas"');
-    expect(header).toContain('href="/#destaques"');
+    expect(header).toContain('to="/" hash="marcas"');
+    expect(header).toContain('to="/conta">Meus pedidos');
     expect(footer).toContain('to="/loja"');
   });
   it("respects reduced motion", () => {
