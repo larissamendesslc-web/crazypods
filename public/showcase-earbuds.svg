@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" aria-label="Ilustração estilizada de fones sem fio" role="img">
+<defs>
+<linearGradient id="shell" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#fff9ff"/><stop offset=".3" stop-color="#e5cfed"/><stop offset=".65" stop-color="#a88fb4"/><stop offset=".9" stop-color="#f9e1ff"/><stop offset="1" stop-color="#a17ea7"/></linearGradient>
+<linearGradient id="top" x1=".12" y1="0" x2=".88" y2="1"><stop stop-color="#fffaff"/><stop offset=".45" stop-color="#a98fb5"/><stop offset=".85" stop-color="#f0d9fa"/><stop offset="1" stop-color="#b88bca"/></linearGradient>
+<linearGradient id="stem"><stop stop-color="#fffaff"/><stop offset=".6" stop-color="#c7b4d6"/><stop offset="1" stop-color="#7d638d"/></linearGradient>
+<filter id="shadow"><feGaussianBlur stdDeviation="22"/></filter>
+<filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<ellipse cx="248" cy="405" rx="157" ry="27" fill="#05040c" opacity=".7" filter="url(#shadow)"/>
+<ellipse cx="248" cy="349" rx="144" ry="42" fill="#ff861e" opacity=".22" filter="url(#soft)"/>
+<g transform="rotate(-13 178 156)">
+<rect x="148" y="72" width="46" height="154" rx="22" fill="url(#stem)" stroke="#ece2ff" stroke-width="2"/>
+<path d="M133 75C139 39 198 37 214 75C227 104 200 139 172 138C139 136 119 108 133 75Z" fill="url(#top)" stroke="#fff0ff" stroke-width="3"/>
+<ellipse cx="204" cy="89" rx="10" ry="21" fill="#1c1932" opacity=".79" transform="rotate(20 204 89)"/>
+<path d="M155 69Q173 49 192 59" fill="none" stroke="#fff" stroke-width="5" opacity=".6"/>
+</g>
+<g transform="rotate(17 308 141)">
+<rect x="288" y="70" width="44" height="153" rx="21" fill="url(#stem)" stroke="#ffe9ff" stroke-width="2"/>
+<path d="M272 68C285 35 334 39 351 72C364 97 340 128 309 128C281 126 264 100 272 68Z" fill="url(#top)" stroke="#fff0ff" stroke-width="3"/>
+<ellipse cx="280" cy="91" rx="9" ry="21" fill="#1a1730" opacity=".77" transform="rotate(-23 280 91)"/>
+<path d="M288 60Q310 48 330 66" fill="none" stroke="#fff" stroke-width="5" opacity=".55"/>
+</g>
+<rect x="101" y="242" width="276" height="147" rx="61" fill="url(#shell)" stroke="#fff4ff" stroke-width="4"/>
+<path d="M105 309Q240 337 373 309" fill="none" stroke="#705d7e" stroke-width="5" opacity=".38"/>
+<path d="M121 296Q242 321 357 296" fill="none" stroke="#fff9ff" stroke-width="6" opacity=".7"/>
+<rect x="223" y="333" width="32" height="6" rx="3" fill="#2bd5d3" opacity=".9"/>
+</svg>

@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, Headphones, Package, ShieldCheck, Sparkles, Truck, Watch, Zap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap } from "lucide-react";
 import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
-import { Logo } from "@/components/site/Logo";
 import { defaultHome, homeDesignQuery, homeFeatureCardsQuery, validHomeLink } from "@/lib/home-design";
 
 export const Route = createFileRoute("/")({
@@ -68,19 +67,19 @@ function Home() {
               {home.center_image_url ? (
                 <img src={home.center_image_url} alt={home.center_caption || "Imagem em destaque"} className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
               ) : (
-                <div className="crazy-showcase-emblem"><Logo className="w-44 sm:w-56" /><Sparkles className="crazy-emblem-spark" size={24} aria-hidden="true" /></div>
+                <img src="/showcase-earbuds.svg" alt="Ilustração demonstrativa de fones sem fio" className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
               )}
               <span className="crazy-showcase-main-label">{home.center_caption}</span>
             </div>
             <div className="crazy-float-card crazy-float-left">
               <div className="crazy-float-visual">
-                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <Headphones className="crazy-placeholder-icon" size={82} strokeWidth={1.25} aria-hidden="true" />}
+                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-headphones.svg" alt="Ilustração demonstrativa de headphone" className="crazy-showcase-cutout" decoding="async" loading="lazy" />}
               </div>
               <span>{home.left_caption}</span>
             </div>
             <div className="crazy-float-card crazy-float-right">
               <div className="crazy-float-visual">
-                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <Watch className="crazy-placeholder-icon" size={78} strokeWidth={1.3} aria-hidden="true" />}
+                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-watch.svg" alt="Ilustração demonstrativa de relógio inteligente" className="crazy-showcase-cutout" decoding="async" loading="lazy" />}
               </div>
               <span>{home.right_caption}</span>
             </div>

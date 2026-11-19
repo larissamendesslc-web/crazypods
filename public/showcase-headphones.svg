@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 440" aria-label="Ilustração estilizada de um headphone" role="img">
+<defs>
+<linearGradient id="band" x1=".1" y1=".05" x2=".85" y2=".9"><stop stop-color="#ffbf79"/><stop offset=".16" stop-color="#7d3d2c"/><stop offset=".4" stop-color="#1c1b28"/><stop offset=".71" stop-color="#090911"/><stop offset=".91" stop-color="#ff7616"/><stop offset="1" stop-color="#2e1624"/></linearGradient>
+<linearGradient id="cup" x1=".1" y1=".1" x2=".95" y2=".9"><stop stop-color="#4c384b"/><stop offset=".22" stop-color="#1d1a27"/><stop offset=".65" stop-color="#070710"/><stop offset=".9" stop-color="#e66a18"/><stop offset="1" stop-color="#1d111b"/></linearGradient>
+<linearGradient id="light"><stop stop-color="#ffb46f"/><stop offset=".48" stop-color="#ff6b1c"/><stop offset="1" stop-color="#9f3610"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="14"/></filter><filter id="shadow"><feGaussianBlur stdDeviation="17"/></filter>
+</defs>
+<ellipse cx="212" cy="383" rx="143" ry="21" fill="#07030b" opacity=".65" filter="url(#shadow)"/>
+<path d="M92 264C83 110 149 59 212 57C296 53 346 137 330 262" fill="none" stroke="#090913" stroke-width="65" stroke-linecap="round"/>
+<path d="M92 264C83 110 149 59 212 57C296 53 346 137 330 262" fill="none" stroke="url(#band)" stroke-width="48" stroke-linecap="round"/>
+<path d="M111 235C94 115 153 73 212 72C291 75 319 145 313 236" fill="none" stroke="#ffb272" stroke-opacity=".43" stroke-width="5"/>
+<path d="M104 245L140 253L147 328L116 339Z" fill="#0f0e18" stroke="#f58c3d" stroke-width="3"/>
+<path d="M289 258L324 241L333 320L302 344Z" fill="#130c17" stroke="#ff8137" stroke-width="3"/>
+<g transform="rotate(-16 118 289)"><rect x="62" y="224" width="106" height="148" rx="43" fill="url(#cup)" stroke="#ff8535" stroke-width="5"/><rect x="77" y="238" width="77" height="119" rx="34" fill="#151421" stroke="#b3542c" stroke-width="3"/><path d="M86 254Q97 234 122 241" stroke="#ffb576" stroke-width="3" fill="none"/></g>
+<g transform="rotate(12 302 280)"><rect x="253" y="211" width="111" height="155" rx="45" fill="url(#cup)" stroke="#fe9c51" stroke-width="5"/><rect x="269" y="226" width="80" height="125" rx="34" fill="#10101b" stroke="#b4502a" stroke-width="3"/><path d="M274 259Q300 225 328 246" fill="none" stroke="#fbb277" stroke-width="4"/></g>
+<path d="M290 346Q311 355 334 333" fill="none" stroke="url(#light)" stroke-width="5" opacity=".8"/>
+<circle cx="212" cy="90" r="29" fill="#fe7b27" opacity=".14" filter="url(#glow)"/>
+</svg>
