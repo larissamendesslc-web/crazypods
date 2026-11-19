@@ -46,9 +46,9 @@ CREATE POLICY home_feature_admin_update ON public.home_feature_cards FOR UPDATE 
   USING (public.has_role(auth.uid(), 'admin'::public.app_role))
   WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
 
-GRANT SELECT ON public.home_design, public.home_feature_cards TO anon, authenticated;
-GRANT UPDATE ON public.home_design, public.home_feature_cards TO authenticated;
-REVOKE INSERT, DELETE ON public.home_design, public.home_feature_cards FROM anon, authenticated;
+REVOKE ALL ON TABLE public.home_design, public.home_feature_cards FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.home_design, public.home_feature_cards TO anon, authenticated;
+GRANT UPDATE ON TABLE public.home_design, public.home_feature_cards TO authenticated;
 
 -- Public read of published marketing images, admin-only upload / write.
 INSERT INTO storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
