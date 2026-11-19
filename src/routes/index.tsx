@@ -4,7 +4,8 @@ import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap } 
 import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
 import { defaultHome, homeDesignQuery, homeFeatureCardsQuery, validHomeLink } from "@/lib/home-design";
-import { themeExperience, normalizeStoreTheme, themedDefault } from "@/lib/theme-experience";
+import { themeExperience, normalizeStoreTheme } from "@/lib/theme-experience";
+import { homeThemeVariantsQuery, resolveThemeCopy, resolveThemeVariant } from "@/lib/theme-variants";
 import { settingsQuery } from "@/lib/queries";
 import { SmokeFX } from "@/components/site/SmokeFX";
 import type { CSSProperties } from "react";
@@ -30,16 +31,15 @@ function ActionLink({ href, className, children }: { href: string; className: st
 function Home() {
   const { data: stored } = useQuery(homeDesignQuery);
   const home = stored ?? defaultHome;
+  const { data: themeVariants = [] } = useQuery(homeThemeVariantsQuery);
   const {data:siteSettings} = useQuery(settingsQuery);
   const theme = normalizeStoreTheme(siteSettings?.theme);
   const experience = themeExperience(theme);
   const isSmoke = theme === "smoke";
   const seasonal = theme === "natal" || theme === "ano-novo" || theme === "halloween";
-  const stageArt = experience.art;
-  const heroEyebrow = themedDefault(defaultHome.eyebrow, home.eyebrow, experience.eyebrow);
-  const heroTitle = themedDefault(defaultHome.title, home.title, experience.title);
-  const heroHighlight = themedDefault(defaultHome.highlight, home.highlight, experience.highlight);
-  const heroSubtitle = themedDefault(defaultHome.subtitle, home.subtitle, experience.subtitle);
+  const selectedVariant = resolveThemeVariant(theme, themeVariants);
+  const themeCopy = resolveThemeCopy(theme, home, selectedVariant);
+  const stageArt = selectedVariant?.background_url ? null : experience.art;
   const { data: slots = [] } = useQuery(homeFeatureCardsQuery);
   const { data: products = [], isPending: productsPending } = useQuery(productsQuery);
   const { data: categories = [] } = useQuery(categoriesQuery);
@@ -50,8 +50,8 @@ function Home() {
     <div className={`crazy-premium-home crazy-experience-${theme}`} data-experience={theme}>
       <section className={`crazy-premium-hero ${seasonal ? "crazy-season-hero" : ""}`} aria-label="Boas-vindas à Crazy Pods">
         <img
-          src={home.background_url || (isSmoke ? "/crazy-smoke-wisp.svg" : "/crazy-premium-scene.svg")}
-          className={`crazy-hero-backdrop ${home.background_url ? "" : "crazy-demo-scene"}`}
+          src={themeCopy.backgroundUrl || (isSmoke ? "/crazy-smoke-wisp.svg" : "/crazy-premium-scene.svg")}
+          className={`crazy-hero-backdrop ${themeCopy.backgroundUrl ? "" : "crazy-demo-scene"}`}
           alt=""
           aria-hidden="true"
           width={1680}
@@ -63,9 +63,9 @@ function Home() {
         {isSmoke && <SmokeFX enabled={home.smoke_enabled} intensity={home.smoke_intensity} motion={home.motion_preset} />}
         <div className="crazy-hero-grid">
           <div className="crazy-hero-copy animate-rise">
-            <p className="crazy-hero-eyebrow"><Sparkles size={14} aria-hidden="true" /> {heroEyebrow}</p>
-            <h1>{heroTitle}<span>{heroHighlight}</span></h1>
-            <p className="crazy-hero-description">{heroSubtitle}</p>
+            <p className="crazy-hero-eyebrow"><Sparkles size={14} aria-hidden="true" /> {themeCopy.eyebrow}</p>
+            <h1>{themeCopy.title}<span>{themeCopy.highlight}</span></h1>
+            <p className="crazy-hero-description">{themeCopy.subtitle}</p>
             {seasonal && <div className="crazy-season-signature"><span className="crazy-signature-line"/><span>{experience.ribbon}</span><span className="crazy-signature-line"/></div>}
             <div className="crazy-hero-actions">
               <ActionLink href={home.primary_link} className="crazy-cta-primary">{home.primary_label} <ArrowRight size={19} aria-hidden="true" /></ActionLink>

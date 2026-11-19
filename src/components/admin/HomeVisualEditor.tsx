@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/site/Logo";
 import { settingsQuery } from "@/lib/queries";
-import { themeExperience, themedDefault } from "@/lib/theme-experience";
+import { themeExperience } from "@/lib/theme-experience";
+import { homeThemeVariantsQuery, resolveThemeCopy, resolveThemeVariant } from "@/lib/theme-variants";
 
 type ImageKey = "background_url" | "center_image_url" | "left_image_url" | "right_image_url";
 const imageFields: { key: ImageKey; label: string; note: string; removeDefault: boolean }[] = [
@@ -106,6 +107,8 @@ export function HomeVisualEditor() {
   const cardsQuery = useQuery(homeFeatureCardsQuery);
   const {data: appearanceSettings} = useQuery(settingsQuery);
   const currentExperience = themeExperience(appearanceSettings?.theme);
+  const {data:themeVariants=[]}=useQuery(homeThemeVariantsQuery);
+  const previewCopy=resolveThemeCopy(appearanceSettings?.theme,design,resolveThemeVariant(appearanceSettings?.theme,themeVariants));
   const [design, setDesign] = useState<HomeDesign>(defaultHome);
   const [cards, setCards] = useState<HomeFeatureCard[]>([]);
   const [tab, setTab] = useState<Panel>("text");
@@ -264,9 +267,9 @@ export function HomeVisualEditor() {
         <p className="mb-4 text-xs text-muted-foreground">Os títulos padrão seguem o tema escolhido. Se você personalizar um texto, ele é mantido em todos os temas.</p>
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
-            <p className="mb-3 text-xs font-bold uppercase text-primary">{themedDefault(defaultHome.eyebrow, design.eyebrow, currentExperience.eyebrow)}</p>
-            <h3 className="font-display text-2xl font-black leading-tight text-white">{themedDefault(defaultHome.title, design.title, currentExperience.title)}<span className="block text-primary">{themedDefault(defaultHome.highlight, design.highlight, currentExperience.highlight)}</span></h3>
-            <p className="mt-3 max-w-lg text-xs leading-relaxed text-muted-foreground">{themedDefault(defaultHome.subtitle, design.subtitle, currentExperience.subtitle)}</p>
+            <p className="mb-3 text-xs font-bold uppercase text-primary">{previewCopy.eyebrow}</p>
+            <h3 className="font-display text-2xl font-black leading-tight text-white">{previewCopy.title}<span className="block text-primary">{previewCopy.highlight}</span></h3>
+            <p className="mt-3 max-w-lg text-xs leading-relaxed text-muted-foreground">{previewCopy.subtitle}</p>
           </div>
           {currentExperience.art ? <img src={currentExperience.art} alt="" width="180" height="170" className="mx-auto h-36 w-36 object-contain" /> : <Logo className="w-32"/>}
         </div>
