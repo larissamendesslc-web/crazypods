@@ -108,8 +108,8 @@ export function HomeVisualEditor() {
   const {data: appearanceSettings} = useQuery(settingsQuery);
   const currentExperience = themeExperience(appearanceSettings?.theme);
   const {data:themeVariants=[]}=useQuery(homeThemeVariantsQuery);
-  const previewCopy=resolveThemeCopy(appearanceSettings?.theme,design,resolveThemeVariant(appearanceSettings?.theme,themeVariants));
   const [design, setDesign] = useState<HomeDesign>(defaultHome);
+  const previewCopy=resolveThemeCopy(appearanceSettings?.theme,design,resolveThemeVariant(appearanceSettings?.theme,themeVariants));
   const [cards, setCards] = useState<HomeFeatureCard[]>([]);
   const [tab, setTab] = useState<Panel>("text");
   const [saving, setSaving] = useState(false);
