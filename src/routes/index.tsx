@@ -83,6 +83,10 @@ function Home() {
               <span className="ffm-hero-eyebrow"><Sparkles size={15}/> CRAZY PODS</span>
               <h1 className="ffm-hero-title">Sua próxima <span>descoberta.</span></h1>
               <p className="ffm-hero-description">Preparando a experiência da loja...</p>
+              <div className="ffm-hero-actions">
+                <Link to="/loja" search={{}} className="ffm-button ffm-button-primary">Ver produtos <ArrowRight size={20} aria-hidden="true"/></Link>
+                <Link to="/conta" className="ffm-button ffm-button-outline">Meus pedidos <ArrowUpRight size={19} aria-hidden="true"/></Link>
+              </div>
               <div className="ffm-opening-progress" aria-hidden="true"><span/></div>
             </div> : <>
             <span className="ffm-hero-eyebrow"><Sparkles size={15} aria-hidden="true"/>{copy.eyebrow}</span>
