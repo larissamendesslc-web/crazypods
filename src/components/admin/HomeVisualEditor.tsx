@@ -75,7 +75,7 @@ function EditablePicture({
       <div className="flex items-center justify-between gap-3"><p className="text-sm font-bold">{name}</p>
         {value && <Button type="button" size="sm" variant="ghost" aria-label={`Remover imagem ${name}`} disabled={!!processing} onClick={() => onChange(null)}><Trash2 size={16} /> Remover</Button>}
       </div>
-      <div className="relative flex aspect-[6/4] items-center justify-center overflow-hidden rounded-xl border bg-[radial-gradient(ellipse_at_center,#3e244b,#0b0811_75%)]">
+      <div className="crazy-editor-thumb relative flex aspect-[6/4] items-center justify-center overflow-hidden rounded-xl border bg-[radial-gradient(ellipse_at_center,#3e244b,#0b0811_75%)]">
         {value ? <img src={value} alt={`Prévia de ${name}`} className="h-[90%] w-[90%] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,.6)]" /> : <span className="flex flex-col items-center gap-2 text-xs text-muted-foreground"><ImagePlus size={28} strokeWidth={1.4}/>Sem imagem personalizada</span>}
         {processing && <div role="status" className="absolute inset-0 grid place-items-center bg-background/90 p-3 text-center text-sm font-semibold"><div><Loader2 className="mx-auto mb-2 animate-spin text-primary"/>{processing}</div></div>}
       </div>
@@ -207,7 +207,7 @@ export function HomeVisualEditor() {
         </div>)}
       </div>}
 
-      <div className="rounded-3xl border border-primary/25 bg-[linear-gradient(120deg,#2c1a38,#110c1d_65%)] p-6">
+      <div className="crazy-editor-preview rounded-3xl border border-primary/25 bg-[linear-gradient(120deg,#2c1a38,#110c1d_65%)] p-6">
         <p className="mb-3 text-xs font-bold uppercase tracking-widest text-primary">PRÉVIA DE TEXTO</p>
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>

@@ -37,7 +37,7 @@ function Home() {
       <section className="crazy-premium-hero" aria-label="Boas-vindas à Crazy Pods">
         <img
           src={home.background_url || "/crazy-premium-scene.svg"}
-          className="crazy-hero-backdrop"
+          className={`crazy-hero-backdrop ${home.background_url ? "" : "crazy-demo-scene"}`}
           alt=""
           aria-hidden="true"
           width={1680}
@@ -67,19 +67,19 @@ function Home() {
               {home.center_image_url ? (
                 <img src={home.center_image_url} alt={home.center_caption || "Imagem em destaque"} className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
               ) : (
-                <img src="/showcase-earbuds.svg" alt="Ilustração demonstrativa de fones sem fio" className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
+                <img src="/showcase-earbuds.svg" alt="Ilustração demonstrativa de fones sem fio" className="crazy-showcase-cutout crazy-demo-illustration crazy-main-cutout" decoding="async" />
               )}
               <span className="crazy-showcase-main-label">{home.center_caption}</span>
             </div>
             <div className="crazy-float-card crazy-float-left">
               <div className="crazy-float-visual">
-                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-headphones.svg" alt="Ilustração demonstrativa de headphone" className="crazy-showcase-cutout" decoding="async" loading="lazy" />}
+                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-headphones.svg" alt="Ilustração demonstrativa de headphone" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
               </div>
               <span>{home.left_caption}</span>
             </div>
             <div className="crazy-float-card crazy-float-right">
               <div className="crazy-float-visual">
-                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-watch.svg" alt="Ilustração demonstrativa de relógio inteligente" className="crazy-showcase-cutout" decoding="async" loading="lazy" />}
+                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-watch.svg" alt="Ilustração demonstrativa de relógio inteligente" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
               </div>
               <span>{home.right_caption}</span>
             </div>

@@ -35,9 +35,9 @@ export function ThemeDecor({ theme }: { theme: string }) {
 }
 
 export const THEMES = [
-  { id: "premium", name: "Crazy Pods Premium", desc: "Laranja neon, roxo e preto · tema novo", colors: ["#0b0811", "#ff8017", "#b568fd"] },
-  { id: "padrao", name: "Crazy Neon", desc: "Identidade original", colors: ["#07070a", "#c6ff3d", "#ff3df0"] },
-  { id: "natal", name: "Natal", desc: "Branco, vermelho, verde e neve", colors: ["#ffffff", "#bb1730", "#164d38"] },
-  { id: "ano-novo", name: "Ano Novo", desc: "Dourado e brilho", colors: ["#0b1024", "#f2c94c", "#e8edf7"] },
-  { id: "halloween", name: "Halloween", desc: "Abóbora e roxo", colors: ["#170a20", "#ff8a1f", "#9b3dff"] },
+  { id: "premium", name: "Crazy Pods Premium", desc: "Laranja neon, violeta e preto", colors: ["#0b0811", "#ff851b", "#b96aff"] },
+  { id: "padrao", name: "Crazy Neon", desc: "Preto, verde-limão e rosa neon em toda a Home", colors: ["#0b0f0b", "#cffc4d", "#ff5ddd"] },
+  { id: "natal", name: "Natal", desc: "Home clara, vermelho, verde e neve", colors: ["#f8fbf8", "#b52036", "#16744b"] },
+  { id: "ano-novo", name: "Ano Novo", desc: "Azul-noturno, dourado e brilhos", colors: ["#070d20", "#f0cb79", "#a4bbf3"] },
+  { id: "halloween", name: "Halloween", desc: "Roxo, laranja e morcegos", colors: ["#12081b", "#ff881c", "#bd75fb"] },
 ] as const;
