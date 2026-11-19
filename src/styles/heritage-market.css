@@ -28,10 +28,21 @@
   --ffm-pulse:255,75,156;--ffm-pulse-second:74,141,255;
 }
 :root[data-theme="padrao"]{
-  --ffm-main:#090d0b;--ffm-surface:#14201a;--ffm-stroke:rgba(206,255,108,.28);
-  --ffm-gradient:linear-gradient(110deg,#cfff51 5%,#52e6b9 49%,#f65ad9 100%);
-  --ffm-highlight:#d0ff60;
-  --ffm-pulse:207,255,81;--ffm-pulse-second:246,90,217;
+  /* Restored Flavor Flock Market original RGB theme for clients and checkout. */
+  --background:#09070e;--foreground:#f9f6ff;
+  --surface:#18111f;--card:#1b1424;--card-foreground:#f9f6ff;
+  --popover:#201729;--popover-foreground:#f9f6ff;
+  --primary:#ff2d95;--primary-foreground:#fff;
+  --secondary:#251b2d;--secondary-foreground:#f9f6ff;
+  --muted:#2d2133;--muted-foreground:#c9bdce;
+  --accent:#22d9e7;--accent-foreground:#07151a;
+  --border:rgba(217,171,238,.23);--input:rgba(217,171,238,.3);
+  --ring:#ff2d95;
+  --gradient-brand:linear-gradient(115deg,#ff2d95,#a855f7 43%,#3b82f6 72%,#22d9e7);
+  --ffm-main:#09070e;--ffm-surface:#18111f;--ffm-stroke:rgba(217,171,238,.23);
+  --ffm-gradient:linear-gradient(115deg,#ff2d95,#a855f7 30%,#3b82f6 61%,#22d9e7 100%);
+  --ffm-highlight:#ff56ab;
+  --ffm-pulse:255,45,149;--ffm-pulse-second:34,217,231;
 }
 :root[data-theme="premium"]{
   --ffm-main:#0b0711;--ffm-surface:#211628;--ffm-stroke:rgba(247,166,114,.28);

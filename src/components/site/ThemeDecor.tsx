@@ -44,7 +44,7 @@ export function ThemeDecor({ theme }: { theme: string }) {
 export const THEMES = [
   { id: "smoke", name: "Crazy Smoke · Black Edition", desc: "Preto intenso, fumaça animada e neon laranja", colors: ["#08070c", "#ff811f", "#b774fb"] },
   { id: "premium", name: "Crazy Pods Premium", desc: "Laranja neon, violeta e preto", colors: ["#0b0811", "#ff851b", "#b96aff"] },
-  { id: "padrao", name: "Crazy Neon", desc: "Preto, verde-limão e rosa neon em toda a Home", colors: ["#0b0f0b", "#cffc4d", "#ff5ddd"] },
+  { id: "padrao", name: "Crazy Original · RGB", desc: "Flavor Flock Market: preto, rosa, roxo, azul e ciano", colors: ["#09070e", "#ff2d95", "#22d9e7"] },
   { id: "natal", name: "Natal", desc: "Home clara, vermelho, verde e neve", colors: ["#f8fbf8", "#b52036", "#16744b"] },
   { id: "ano-novo", name: "Ano Novo", desc: "Azul-noturno, dourado e brilhos", colors: ["#070d20", "#f0cb79", "#a4bbf3"] },
   { id: "halloween", name: "Halloween", desc: "Roxo, laranja e morcegos", colors: ["#12081b", "#ff881c", "#bd75fb"] },
