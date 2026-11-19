@@ -64,11 +64,15 @@ function Home() {
   const isOpening= settingsPending || homePending || variantPending;
   // Category/highlight links must find their target even if the Home data arrives after navigation.
   useEffect(()=>{
-    if (isOpening || !routeHash) return;
+    if (!routeHash) return;
     const target=String(routeHash).replace(/^#/,"");
     if (!["marcas","destaques","como-comprar"].includes(target)) return;
-    const frame=requestAnimationFrame(()=>document.getElementById(target)?.scrollIntoView({block:"start",behavior:"instant"}));
-    return ()=>cancelAnimationFrame(frame);
+    const jump=()=>document.getElementById(target)?.scrollIntoView({block:"start",behavior:"instant"});
+    // Anchor targets exist before the async theme/catalog finishes loading. Align
+    // immediately, then correct once after hydration and any content height changes.
+    const frame=requestAnimationFrame(jump);
+    const retry=window.setTimeout(jump,260);
+    return ()=>{cancelAnimationFrame(frame);window.clearTimeout(retry)};
   },[routeHash,isOpening]);
 
   return (
