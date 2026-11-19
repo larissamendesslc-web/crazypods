@@ -43,10 +43,10 @@ export function AuthForm({ onDone, initialMode = "login" }: { onDone?: () => voi
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-2 rounded-full border bg-secondary p-1 text-sm font-bold">
+    <form onSubmit={submit} className="crazy-auth-form min-w-0 max-w-full space-y-4">
+      <div className="crazy-auth-mode-grid grid min-w-0 grid-cols-2 rounded-full border bg-secondary p-1 text-sm font-bold">
         {(["login", "signup"] as const).map((m) => (
-          <Button key={m} variant="ghost" type="button" onClick={() => setMode(m)} className={`rounded-full py-2.5 transition-colors ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+          <Button key={m} variant="ghost" type="button" onClick={() => setMode(m)} className={`crazy-auth-mode-btn min-w-0 w-full rounded-full px-2 py-2.5 text-xs leading-snug whitespace-normal transition-colors sm:text-sm ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
             {m === "login" ? "Entrar" : "Criar conta"}
           </Button>
         ))}
@@ -61,7 +61,7 @@ export function AuthForm({ onDone, initialMode = "login" }: { onDone?: () => voi
         </>
       )}
       <Field label="Senha"><Input type="password" value={f.password} onChange={set("password")} autoComplete={mode === "login" ? "current-password" : "new-password"} required className="h-12 rounded-xl" /></Field>
-      <Button type="submit" variant="neon" size="xl" className="w-full" disabled={loading}>
+      <Button type="submit" variant="neon" size="xl" className="crazy-auth-submit min-w-0 w-full max-w-full whitespace-normal break-words px-3 text-xs leading-snug sm:text-sm" disabled={loading}>
         {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar minha conta"}
       </Button>
     </form>
@@ -69,5 +69,5 @@ export function AuthForm({ onDone, initialMode = "login" }: { onDone?: () => voi
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block space-y-1.5"><span className="text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
+  return <label className="block min-w-0 max-w-full space-y-1.5"><span className="text-xs font-semibold text-muted-foreground">{label}</span>{children}</label>;
 }

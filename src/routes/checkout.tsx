@@ -137,19 +137,19 @@ function Checkout() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8">
-      <h1 className="text-3xl font-black uppercase italic sm:text-5xl">Finalizar <span className="text-gradient-brand">compra</span></h1>
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-6">
+    <div className="crazy-checkout-page mx-auto w-full min-w-0 max-w-6xl px-4 pb-10 pt-8">
+      <h1 className="crazy-checkout-heading max-w-full break-words text-3xl font-black uppercase italic leading-tight sm:text-5xl">Finalizar <span className="text-gradient-brand">compra</span></h1>
+      <div className="crazy-checkout-grid mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+        <div className="crazy-checkout-primary min-w-0 space-y-6">
           {!ready ? null : !user ? (
-            <section className="rounded-3xl border bg-card p-5 sm:p-7">
+            <section className="crazy-checkout-panel min-w-0 max-w-full rounded-3xl border bg-card p-5 sm:p-7">
               <h2 className="mb-1 font-display text-lg font-bold">1. Identifique-se</h2>
               <p className="mb-5 text-sm text-muted-foreground">Entre ou crie sua conta para finalizar a compra.</p>
               <AuthForm initialMode="signup" />
             </section>
           ) : (
             <>
-              <section className="rounded-3xl border bg-card p-5 sm:p-7">
+              <section className="crazy-checkout-panel min-w-0 max-w-full rounded-3xl border bg-card p-5 sm:p-7">
                 <h2 className="mb-5 font-display text-lg font-bold">1. Entrega</h2>
                 <DeliveryAddress onQuote={setDelivery} />
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -157,11 +157,11 @@ function Checkout() {
                   <F label="Telefone / WhatsApp"><Input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-xl" /></F>
                 </div>
               </section>
-              <section className="rounded-3xl border bg-card p-5 sm:p-7">
+              <section className="crazy-checkout-panel min-w-0 max-w-full rounded-3xl border bg-card p-5 sm:p-7">
                 <h2 className="mb-5 font-display text-lg font-bold">2. Pagamento</h2>
                 <div className="grid grid-cols-2 gap-2">
                   {METHODS.map(({ id, label, hint, icon: Icon }) => (
-                    <button key={id} disabled={id === "online" && paymentAvailability.data?.online_enabled !== true} onClick={() => setMethod(id)} className={`flex flex-col items-center gap-1.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all ${method === id ? "border-primary bg-primary/10 shadow-glow" : "text-muted-foreground"}`}>
+                    <button key={id} disabled={id === "online" && paymentAvailability.data?.online_enabled !== true} onClick={() => setMethod(id)} className={`crazy-checkout-payment-option flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all ${method === id ? "border-primary bg-primary/10 shadow-glow" : "text-muted-foreground"}`}>
                       <Icon className={`h-6 w-6 ${method === id ? "text-primary" : ""}`} /> {label}
                       <span className="text-[10px] font-medium text-muted-foreground">{hint}</span>
                     </button>
@@ -181,8 +181,8 @@ function Checkout() {
                 {method === "dinheiro" && (
                   <div className="mt-4 space-y-3 rounded-2xl border bg-secondary/40 p-4">
                     <div className="flex gap-2">
-                      <button onClick={() => setNeedChange(false)} className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold ${!needChange ? "border-primary bg-primary/10" : "text-muted-foreground"}`}>Não preciso de troco</button>
-                      <button onClick={() => setNeedChange(true)} className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold ${needChange ? "border-primary bg-primary/10" : "text-muted-foreground"}`}>Preciso de troco</button>
+                      <button onClick={() => setNeedChange(false)} className={`crazy-checkout-money-option min-w-0 flex-1 rounded-xl border px-3 py-2 text-xs font-bold ${!needChange ? "border-primary bg-primary/10" : "text-muted-foreground"}`}>Não preciso de troco</button>
+                      <button onClick={() => setNeedChange(true)} className={`crazy-checkout-money-option min-w-0 flex-1 rounded-xl border px-3 py-2 text-xs font-bold ${needChange ? "border-primary bg-primary/10" : "text-muted-foreground"}`}>Preciso de troco</button>
                     </div>
                     {needChange && (
                       <F label="Vou pagar com uma nota de (R$)">
@@ -200,21 +200,21 @@ function Checkout() {
           )}
         </div>
 
-        <aside className="h-fit rounded-3xl border bg-card p-5 lg:sticky lg:top-32">
+        <aside className="crazy-checkout-summary h-fit min-w-0 max-w-full rounded-3xl border bg-card p-5 lg:sticky lg:top-32">
           <h2 className="mb-4 font-display text-lg font-bold">Resumo</h2>
           <ul className="space-y-3">
             {cart.items.map((i) => (
               <li key={i.key} className="flex items-center gap-3">
                 <ProductStage src={i.image_url} alt={i.name} accent={i.accent_color} size="sm" className="h-14 w-14 shrink-0 rounded-xl bg-secondary" />
                 <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{i.quantity}x {i.name}</p>{i.flavor && <p className="text-xs text-muted-foreground">{i.flavor}</p>}</div>
-                <span className="text-sm font-bold">{formatBRL(i.price * i.quantity)}</span>
+                <span className="shrink-0 text-sm font-bold">{formatBRL(i.price * i.quantity)}</span>
               </li>
             ))}
           </ul>
           <div className="mt-5 space-y-2 border-t pt-4 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Produtos</span><span>{formatBRL(cart.subtotal)}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>{delivery ? formatBRL(delivery.shippingFee) : "A calcular"}</span></div>{delivery && <p className="text-xs text-muted-foreground">Entrega estimada: {delivery.minutes} minutos</p>}</div>
           <div className="mt-4 flex items-end justify-between border-t pt-4">
             <span className="text-muted-foreground">Total</span>
-            <span className="font-display text-3xl font-black">{delivery ? formatBRL(total) : "—"}</span>
+            <span className="min-w-0 break-words text-right font-display text-2xl font-black sm:text-3xl">{delivery ? formatBRL(total) : "—"}</span>
           </div>
           <Button variant="neon" size="xl" className="mt-5 w-full" disabled={!user || busy || !delivery} onClick={submit}>
             {busy ? "Confirmando..." : method === "online" ? "Ir para o pagamento" : "Confirmar pedido"}

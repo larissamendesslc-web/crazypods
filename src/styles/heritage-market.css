@@ -349,3 +349,30 @@
   .ffm-ticker-track,.ffm-marquee-track,.ffm-display-light,.ffm-display-brand,.ffm-display-season,.ffm-side-art{animation:none!important;}
   .ffm-button,.ffm-category-card,.ffm-benefit{transition:none!important;}
 }
+
+
+/* Checkout & authentication: never allow a grid's min-content width to
+   expand the iPhone visual viewport (especially during font loading). */
+.crazy-checkout-page, .crazy-checkout-grid,
+.crazy-checkout-primary, .crazy-checkout-panel,
+.crazy-checkout-summary, .crazy-auth-form,
+.crazy-auth-mode-grid { min-width:0; max-width:100%; }
+.crazy-auth-form input, .crazy-checkout-page input, .crazy-checkout-page textarea {
+  min-width:0; max-width:100%; font-size:16px;
+}
+.crazy-auth-form .crazy-auth-submit, .crazy-auth-form .crazy-auth-mode-btn,
+.crazy-checkout-payment-option, .crazy-checkout-money-option {
+  min-width:0; max-width:100%; overflow-wrap:anywhere;
+}
+.crazy-auth-submit {white-space:normal!important;line-height:1.35;min-height:54px;height:auto;}
+.crazy-auth-mode-btn {white-space:normal!important;}
+@media(max-width:440px) {
+ .crazy-checkout-heading {font-size:clamp(1.8rem,7.5vw,2.5rem);line-height:1.15;}
+ .crazy-checkout-grid {grid-template-columns:minmax(0,1fr);}
+ .crazy-checkout-panel {padding:clamp(14px,4vw,20px);}
+ .crazy-checkout-summary {padding:clamp(14px,4vw,20px);}
+ .crazy-auth-mode-btn {font-size:12px;padding-inline:5px;}
+ .crazy-auth-submit {padding:12px 10px;font-size:clamp(11px,3.3vw,13px);}
+ .crazy-checkout-payment-option {padding:12px 8px;white-space:normal;}
+ .crazy-checkout-money-option {padding-inline:8px;white-space:normal;line-height:1.35;}
+}
