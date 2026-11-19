@@ -1,22 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap } from "lucide-react";
-import { categoriesQuery, productsQuery } from "@/lib/queries";
+import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap, ShoppingBag } from "lucide-react";
+import { categoriesQuery, productsQuery, settingsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
+import { ProductStage } from "@/components/site/ProductStage";
 import { defaultHome, homeDesignQuery, homeFeatureCardsQuery, validHomeLink } from "@/lib/home-design";
-import { themeExperience, normalizeStoreTheme } from "@/lib/theme-experience";
 import { homeThemeVariantsQuery, resolveThemeCopy, resolveThemeVariant } from "@/lib/theme-variants";
-import { settingsQuery } from "@/lib/queries";
+import { normalizeStoreTheme, themeExperience } from "@/lib/theme-experience";
 import { SmokeFX } from "@/components/site/SmokeFX";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Crazy Pods — Uma nova experiência" },
-      { name: "description", content: "Descubra a vitrine Crazy Pods. Explore produtos reais, novidades e ofertas em uma experiência feita para surpreender." },
-      { property: "og:title", content: "Crazy Pods — Uma nova experiência" },
-      { property: "og:description", content: "Uma experiência premium com a identidade Crazy Pods." },
+      { title: "Crazy Pods — Sinta o impacto" },
+      { name: "description", content: "Explore a Crazy Pods: vitrine, novidades, produtos e pedidos em um só lugar." },
+      { property: "og:title", content: "Crazy Pods — Sinta o impacto" },
+      { property: "og:description", content: "Descubra a experiência Crazy Pods." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -24,164 +24,139 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function ActionLink({ href, className, children }: { href: string; className: string; children: React.ReactNode }) {
+function SafeLink({ href, children, className }: { href:string; children: ReactNode; className:string }) {
   return <a href={validHomeLink(href) ? href : "/loja"} className={className}>{children}</a>;
 }
 
 function Home() {
-  const { data: stored } = useQuery(homeDesignQuery);
-  const home = stored ?? defaultHome;
-  const { data: themeVariants = [] } = useQuery(homeThemeVariantsQuery);
-  const {data:siteSettings} = useQuery(settingsQuery);
-  const theme = normalizeStoreTheme(siteSettings?.theme);
-  const experience = themeExperience(theme);
-  const isSmoke = theme === "smoke";
-  const seasonal = theme === "natal" || theme === "ano-novo" || theme === "halloween";
-  const selectedVariant = resolveThemeVariant(theme, themeVariants);
-  const themeCopy = resolveThemeCopy(theme, home, selectedVariant);
-  const stageArt = selectedVariant?.background_url ? null : experience.art;
-  const { data: slots = [] } = useQuery(homeFeatureCardsQuery);
-  const { data: products = [], isPending: productsPending } = useQuery(productsQuery);
-  const { data: categories = [] } = useQuery(categoriesQuery);
-  const visibleCards = slots.filter((card) => card.active && card.title.trim());
-  const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name;
+  const {data:settings}=useQuery(settingsQuery);
+  const theme=normalizeStoreTheme(settings?.theme);
+  const experience=themeExperience(theme);
+  const {data:stored}=useQuery(homeDesignQuery);
+  const home=stored??defaultHome;
+  const {data:variants=[]}=useQuery(homeThemeVariantsQuery);
+  const selected=resolveThemeVariant(theme,variants);
+  const copy=resolveThemeCopy(theme,home,selected);
+  const {data:slots=[]}=useQuery(homeFeatureCardsQuery);
+  const {data:products=[],isPending:productsPending}=useQuery(productsQuery);
+  const {data:categories=[]}=useQuery(categoriesQuery);
+  const actualCategories=categories.filter(c=>products.some(p=>p.category_id===c.id));
+  const brandName=(id:string|null)=>categories.find(c=>c.id===id)?.name;
+  const cards=slots.filter(c=>c.active&&c.title.trim());
+  const featured=products.find(p=>p.featured&&p.image_url)||products.find(p=>p.image_url);
+  const artImage=home.center_image_url||featured?.image_url||null;
+  const artAlt=home.center_image_url?(home.center_caption||"Imagem em destaque"):featured?.name||"";
+  const themeStage=selected?.background_url?null:experience.art;
+  const backgroundUrl=copy.backgroundUrl;
+  const showSide=home.show_side_art||!!home.left_image_url||!!home.right_image_url;
+  const mainTitle=copy.title.trim();
+  const highlight=copy.highlight.trim();
 
   return (
-    <div className={`crazy-premium-home crazy-experience-${theme}`} data-experience={theme}>
-      <section className={`crazy-premium-hero ${seasonal ? "crazy-season-hero" : ""}`} aria-label="Boas-vindas à Crazy Pods">
-        <img
-          src={themeCopy.backgroundUrl || (isSmoke ? "/crazy-smoke-wisp.svg" : "/crazy-premium-scene.svg")}
-          className={`crazy-hero-backdrop ${themeCopy.backgroundUrl ? "" : "crazy-demo-scene"}`}
-          alt=""
-          aria-hidden="true"
-          width={1680}
-          height={960}
-          fetchPriority="high"
-        />
-        <div className="crazy-hero-vignette" aria-hidden="true" />
-        {seasonal && <div className="crazy-season-sky" aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>}
-        {isSmoke && <SmokeFX enabled={home.smoke_enabled} intensity={home.smoke_intensity} motion={home.motion_preset} />}
-        <div className="crazy-hero-grid">
-          <div className="crazy-hero-copy animate-rise">
-            <p className="crazy-hero-eyebrow"><Sparkles size={14} aria-hidden="true" /> {themeCopy.eyebrow}</p>
-            <h1>{themeCopy.title}<span>{themeCopy.highlight}</span></h1>
-            <p className="crazy-hero-description">{themeCopy.subtitle}</p>
-            {seasonal && <div className="crazy-season-signature"><span className="crazy-signature-line"/><span>{experience.ribbon}</span><span className="crazy-signature-line"/></div>}
-            <div className="crazy-hero-actions">
-              <ActionLink href={home.primary_link} className="crazy-cta-primary">{home.primary_label} <ArrowRight size={19} aria-hidden="true" /></ActionLink>
-              <ActionLink href={home.secondary_link} className="crazy-cta-secondary">{home.secondary_label} <ArrowUpRight size={17} aria-hidden="true" /></ActionLink>
+    <div className={["ffm-home","ffm-home-"+theme].join(" ")} data-heritage-home="true" data-experience={theme}>
+      <section className="ffm-hero" aria-label="Bem-vindo à Crazy Pods">
+        <div className="ffm-hero-aurora" aria-hidden="true" />
+        {backgroundUrl&&<img className="ffm-hero-background" src={backgroundUrl} alt="" aria-hidden="true" fetchPriority="high"/>}
+        {theme==="smoke"&&<SmokeFX enabled={home.smoke_enabled} intensity={home.smoke_intensity} motion={home.motion_preset}/>}
+        <div className="ffm-hero-shell">
+          <div className="ffm-hero-copy animate-rise">
+            <span className="ffm-hero-eyebrow"><Sparkles size={15} aria-hidden="true"/>{copy.eyebrow}</span>
+            <p className="ffm-hero-edition"><span className="ffm-neon-line"/> CRAZY PODS / ORIGINAL EXPERIENCE</p>
+            <h1 className="ffm-hero-title">{mainTitle}<span>{highlight}</span></h1>
+            <p className="ffm-hero-description">{copy.subtitle}</p>
+            <div className="ffm-hero-actions">
+              <SafeLink href={home.primary_link} className="ffm-button ffm-button-primary">{home.primary_label} <ArrowRight size={20} aria-hidden="true"/></SafeLink>
+              <SafeLink href={home.secondary_link} className="ffm-button ffm-button-outline">{home.secondary_label} <ArrowUpRight size={19} aria-hidden="true"/></SafeLink>
             </div>
-            <div className="crazy-hero-proof">
-              <span><ShieldCheck size={18} aria-hidden="true" /> Compra com conta protegida</span>
-              <span><Truck size={18} aria-hidden="true" /> Entrega acompanhada</span>
+            <div className="ffm-hero-trust">
+              <span><ShieldCheck size={17} aria-hidden="true"/> Área de pedidos protegida</span>
+              <span><Truck size={17} aria-hidden="true"/> Acompanhe a entrega</span>
             </div>
           </div>
-
-          <div className={`crazy-showcase ${isSmoke ? "crazy-smoke-showcase" : ""} ${seasonal ? "crazy-season-showcase" : ""}`} style={{"--hero-art-scale": home.hero_art_scale / 100} as CSSProperties} aria-label="Vitrine visual editável da Crazy Pods">
-            {stageArt && <div className="crazy-season-stage" aria-hidden="true"><img src={stageArt} alt="" width={1000} height={950} decoding="async" fetchPriority="high" /><span className="crazy-season-stage-glow" /></div>}
-            {isSmoke && <div className="crazy-smoke-bag-scene" aria-hidden="true">
-              <img src="/crazy-smoke-bag.svg" alt="" width={960} height={950} decoding="async" />
-              <span className="crazy-smoke-halo" />
-            </div>}
-            <div className="crazy-stage-glow" aria-hidden="true" />
-            <div className="crazy-glass-orbit" aria-hidden="true" />
-            {(!seasonal || !!home.center_image_url) && <div className="crazy-showcase-main">
-              {home.center_image_url ? (
-                <img src={home.center_image_url} alt={home.center_caption || "Imagem em destaque"} className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
-              ) : (
-                <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration crazy-main-cutout" decoding="async" />
-              )}
-              <span className="crazy-showcase-main-label">{home.center_caption}</span>
-            </div>}
-            {((!isSmoke && !seasonal) || home.show_side_art || !!home.left_image_url) && <div className="crazy-float-card crazy-float-left">
-              <div className="crazy-float-visual">
-                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
+          <div className="ffm-hero-display" style={{"--hero-art-scale":home.hero_art_scale/100} as CSSProperties} aria-label="Vitrine Crazy Pods">
+            <div className="ffm-display-ring ffm-display-ring-one" aria-hidden="true"/>
+            <div className="ffm-display-ring ffm-display-ring-two" aria-hidden="true"/>
+            <div className="ffm-display-light" aria-hidden="true"/>
+            {artImage?(
+              <div className="ffm-display-product">
+                <ProductStage src={artImage} alt={artAlt} accent={featured?.accent_color} size="lg" float className="ffm-display-product-stage h-full w-full"/>
+                <span className="ffm-display-caption">{home.center_image_url?home.center_caption:featured?.name}</span>
               </div>
-              <span>{home.left_caption}</span>
-            </div>}
-            {((!isSmoke && !seasonal) || home.show_side_art || !!home.right_image_url) && <div className="crazy-float-card crazy-float-right">
-              <div className="crazy-float-visual">
-                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
-              </div>
-              <span>{home.right_caption}</span>
-            </div>}
+            ):themeStage?(
+              <img src={themeStage} className="ffm-display-season" alt="" aria-hidden="true" decoding="async" width={1000} height={950}/>
+            ):(
+              <div className="ffm-display-brand" aria-hidden="true"><span>CRAZY</span><strong>PODS</strong><small>SINTA O IMPACTO</small></div>
+            )}
+            {showSide&&home.left_image_url&&<div className="ffm-side-art ffm-side-left"><img src={home.left_image_url} alt={home.left_caption||"Imagem lateral"} loading="lazy"/></div>}
+            {showSide&&home.right_image_url&&<div className="ffm-side-art ffm-side-right"><img src={home.right_image_url} alt={home.right_caption||"Imagem lateral"} loading="lazy"/></div>}
+            <span className="ffm-display-corner ffm-corner-top">CRAZY / 01</span>
+            <span className="ffm-display-corner ffm-corner-bottom">EST. 2026 ✦ VIBE ORIGINAL</span>
           </div>
         </div>
-        <div className="crazy-hero-bottom-glow" aria-hidden="true" />
+        <div className="ffm-hero-bottom" aria-hidden="true"/>
       </section>
 
-      {seasonal && <div className="crazy-season-marquee" aria-label={experience.ribbon}><span>✦</span><strong>{experience.ribbon}</strong><span>✦</span><strong>{experience.deliveryMessage}</strong><span>✦</span></div>}
-      <section className="crazy-promise-strip" aria-label="Experiência de compra">
-        <div><Zap size={22} aria-hidden="true" /><span><strong>Vitrine renovada</strong><small>Escolhas em destaque</small></span></div>
-        <div><ShieldCheck size={22} aria-hidden="true" /><span><strong>Compra com confiança</strong><small>Seus pedidos na sua conta</small></span></div>
-        <div><Truck size={22} aria-hidden="true" /><span><strong>Acompanhe sua entrega</strong><small>Da confirmação à chegada</small></span></div>
-      </section>
-
-      <section id="destaques" className="crazy-premium-section crazy-feature-section">
-        <div className="crazy-section-heading">
-          <p className="crazy-section-kicker">{experience.collectionKicker}</p>
-          <h2>{experience.collectionTitle} <span>{experience.collectionHighlight}</span></h2>
-          <p>{experience.collectionDescription}</p>
+      <div className="ffm-marquee" aria-label="Categorias e novidades">
+        <div className="ffm-marquee-track">
+          {Array.from({length:4},(_,i)=><span key={i} aria-hidden={i>0}>
+            {(actualCategories.length?actualCategories.map(c=>c.name):["CRAZY PODS","NOVA EXPERIÊNCIA","SINTA O IMPACTO"]).map((name,j)=>
+              <b key={j} className={j%2?"ffm-outline-word":"ffm-gradient-word"}>{name}<em>✦</em></b>
+            )}
+          </span>)}
         </div>
-        {visibleCards.length > 0 ? (
-          <div className="crazy-editorial-grid">
-            {visibleCards.map((card) => (
-              <ActionLink key={card.slot} href={card.target_link} className="crazy-editorial-card">
-                <div className="crazy-card-ambient" aria-hidden="true" />
-                <div className="crazy-card-art">
-                  {card.image_url ? <img src={card.image_url} alt={card.title} loading="lazy" decoding="async" /> : <Package size={72} strokeWidth={1} aria-hidden="true" />}
-                </div>
-                <div className="crazy-editorial-label">
-                  <div><h3>{card.title}</h3>{card.subtitle && <p>{card.subtitle}</p>}</div>
-                  <span className="crazy-editorial-arrow"><ArrowUpRight size={18} aria-hidden="true" /></span>
-                </div>
-              </ActionLink>
-            ))}
+      </div>
+
+      <section id="marcas" className="ffm-section ffm-categories">
+        <div className="ffm-section-heading">
+          <div><p className="ffm-kicker">UNIVERSO CRAZY · 01</p><h2>Escolha <span>sua vibe.</span></h2><p>Descubra as categorias disponíveis e encontre seu próximo favorito.</p></div>
+          <Link to="/loja" search={{}} className="ffm-text-link">Ver catálogo <ArrowUpRight size={18}/></Link>
+        </div>
+        {cards.length?(
+          <div className="ffm-category-grid">
+            {cards.map((card,i)=><SafeLink key={card.slot} href={card.target_link} className="ffm-category-card" >
+              <div className="ffm-category-art">
+                {card.image_url?<img src={card.image_url} alt="" loading="lazy"/>:<Package size={68} aria-hidden="true"/>}
+              </div>
+              <div className="ffm-category-content"><span className="ffm-category-number">0{i+1}</span><h3>{card.title}</h3>{card.subtitle&&<p>{card.subtitle}</p>}</div>
+              <ArrowUpRight className="ffm-category-arrow" size={20} aria-hidden="true"/>
+            </SafeLink>)}
           </div>
-        ) : categories.length > 0 ? (
-          <div className="crazy-editorial-grid">
-            {categories.slice(0, 4).map((category) => (
-              <Link key={category.id} to="/loja" search={{ marca: category.slug }} className="crazy-editorial-card">
-                <div className="crazy-card-ambient" aria-hidden="true" />
-                <div className="crazy-card-art">{category.logo_url ? <img src={category.logo_url} alt="" loading="lazy" /> : <Package size={72} strokeWidth={1} aria-hidden="true" />}</div>
-                <div className="crazy-editorial-label">
-                  <div><h3>{category.name}</h3>{category.tagline && <p>{category.tagline}</p>}</div>
-                  <span className="crazy-editorial-arrow"><ArrowUpRight size={18} aria-hidden="true" /></span>
-                </div>
-              </Link>
-            ))}
+        ):actualCategories.length?(
+          <div className="ffm-category-grid">
+            {actualCategories.slice(0,8).map((category,i)=><Link key={category.id} to="/loja" search={{marca:category.slug}} className="ffm-category-card">
+              <div className="ffm-category-art">{category.logo_url?<img src={category.logo_url} alt="" loading="lazy"/>:<span className="ffm-category-monogram">{category.name.slice(0,2)}</span>}</div>
+              <div className="ffm-category-content"><span className="ffm-category-number">0{i+1}</span><h3>{category.name}</h3>{category.tagline&&<p>{category.tagline}</p>}</div>
+              <ArrowUpRight className="ffm-category-arrow" size={20} aria-hidden="true"/>
+            </Link>)}
           </div>
-        ) : (
-          <div className="crazy-empty-spotlight">
-            <div className="crazy-empty-symbol" aria-hidden="true"><Sparkles size={48} strokeWidth={1.2} /></div>
-            <div>
-              <h3>Novas seleções em breve</h3>
-              <p>A vitrine de destaques será atualizada conforme novas coleções chegarem.</p>
-            </div>
-            <Link to="/loja" search={{}} className="crazy-empty-link">Acessar loja <ArrowRight size={17} /></Link>
-          </div>
+        ):(
+          <div className="ffm-empty-categories"><Sparkles size={32} aria-hidden="true"/><div><h3>Novas coleções em preparação</h3><p>As categorias aparecerão aqui quando houver produtos cadastrados.</p></div></div>
         )}
       </section>
 
-      <section className="crazy-premium-section crazy-products-section">
-        <div className="crazy-products-head">
-          <div><p className="crazy-section-kicker">{experience.productsKicker}</p><h2>{experience.productsTitle} <span>{experience.productsHighlight}</span></h2></div>
-          <Link to="/loja" search={{}} className="crazy-see-all">Ver loja inteira <ArrowRight size={18} /></Link>
+      <section id="destaques" className="ffm-section ffm-products">
+        <div className="ffm-section-heading">
+          <div><p className="ffm-kicker">CATÁLOGO CRAZY · 02</p><h2>Em <span>alta.</span></h2><p>Confira os produtos disponíveis na loja.</p></div>
+          <Link to="/loja" search={{}} className="ffm-text-link">Ver tudo <ArrowUpRight size={18}/></Link>
         </div>
-        {productsPending ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{[0,1,2,3].map(i=><div key={i} className="aspect-[3/4] animate-pulse rounded-3xl bg-card" />)}</div>
-        ) : products.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {products.slice(0, 8).map((product, index) => <ProductCard key={product.id} product={product} brand={categoryName(product.category_id)} index={index} />)}
-          </div>
-        ) : (
-          <div className="crazy-no-products"><Sparkles className="mx-auto mb-4 text-primary" size={34}/><h3>A próxima novidade pode estar chegando</h3><p>O catálogo será atualizado assim que novos produtos estiverem disponíveis.</p></div>
+        {productsPending?(
+          <div className="ffm-product-grid">{Array.from({length:4},(_,i)=><div key={i} className="aspect-[3/4] animate-pulse rounded-3xl bg-card"/>)}</div>
+        ):products.length?(
+          <div className="ffm-product-grid">{products.slice(0,8).map((p,i)=><ProductCard key={p.id} product={p} brand={brandName(p.category_id)} index={i}/>)}</div>
+        ):(
+          <div className="ffm-empty-products"><ShoppingBag size={36} aria-hidden="true"/><h3>O próximo destaque está chegando.</h3><p>Os produtos aparecerão aqui assim que forem cadastrados.</p><Link to="/loja" search={{}} className="ffm-text-link">Visitar a loja <ArrowRight size={18}/></Link></div>
         )}
       </section>
 
-      <section className="crazy-last-call crazy-premium-section">
-        <div><p className="crazy-section-kicker">{experience.deliveryMessage}</p><h2>{experience.deliveryTitle} <span>{experience.footer}</span></h2></div>
-        <Link to="/loja" search={{}} className="crazy-cta-primary">Explorar a loja <ArrowRight size={19} /></Link>
+      <section className="ffm-benefits ffm-section" aria-label="Sua experiência de compra">
+        <div className="ffm-benefit"><div className="ffm-benefit-icon"><Zap size={24} aria-hidden="true"/></div><div><h3>Compra descomplicada</h3><p>Encontre, escolha e finalize seu pedido.</p></div></div>
+        <div className="ffm-benefit"><div className="ffm-benefit-icon"><Truck size={24} aria-hidden="true"/></div><div><h3>Entrega acompanhada</h3><p>Confira o andamento pelo site.</p></div></div>
+        <div className="ffm-benefit"><div className="ffm-benefit-icon"><ShieldCheck size={24} aria-hidden="true"/></div><div><h3>Minha conta</h3><p>Seus dados e pedidos em um só lugar.</p></div></div>
+      </section>
+
+      <section className="ffm-final ffm-section">
+        <div><p className="ffm-kicker">CRAZY PODS · {experience.label.toUpperCase()}</p><h2>Seu estilo. <span>Sua escolha.</span></h2><p>Uma loja diferente do primeiro clique à próxima descoberta.</p></div>
+        <Link to="/loja" search={{}} className="ffm-button ffm-button-primary">Explorar a loja <ArrowRight size={19}/></Link>
       </section>
     </div>
   );
