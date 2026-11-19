@@ -138,6 +138,7 @@ function Checkout() {
 
   return (
     <div className="crazy-checkout-page mx-auto w-full min-w-0 max-w-6xl px-4 pb-10 pt-8">
+      <nav className="ffm-breadcrumbs" aria-label="Etapas da compra"><Link to="/">Início</Link><span aria-hidden="true">/</span><Link to="/loja" search={{}}>Produtos</Link><span aria-hidden="true">/</span><span>Finalizar pedido</span></nav>
       <h1 className="crazy-checkout-heading max-w-full break-words text-3xl font-black uppercase italic leading-tight sm:text-5xl">Finalizar <span className="text-gradient-brand">compra</span></h1>
       <div className="crazy-checkout-grid mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
         <div className="crazy-checkout-primary min-w-0 space-y-6">

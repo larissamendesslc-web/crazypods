@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, ShoppingBag, User, X, Sparkles } from "lucide-react";
+import { Search, ShoppingBag, User, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useCart } from "@/lib/cart";
@@ -18,7 +18,7 @@ export function Header() {
     const q=search.trim().slice(0,100);
     if(!q) return;
     setMobileSearch(false);
-    void navigate({to:"/loja",search:{marca:undefined,q}});
+    void navigate({to:"/loja",search:{marca:undefined,q},hash:"catalogo"});
   }
   return (
     <header className="ffm-header sticky top-0 z-50" data-heritage-header="true">
@@ -30,9 +30,9 @@ export function Header() {
           <Link to="/" aria-label="Crazy Pods — Início" className="ffm-nav-logo"><Logo /></Link>
           <nav aria-label="Navegação principal" className="ffm-nav-desktop">
             <Link to="/" activeOptions={{exact:true}} activeProps={{className:"ffm-nav-active"}}>Início</Link>
-            <Link to="/loja" search={{}} activeProps={{className:"ffm-nav-active"}}>Loja</Link>
-            <a href="/#marcas">Categorias</a>
-            <a href="/#destaques">Destaques</a>
+            <Link to="/loja" search={{}} activeProps={{className:"ffm-nav-active"}}>Produtos</Link>
+            <Link to="/" hash="marcas">Categorias</Link>
+            <Link to="/conta">Meus pedidos</Link>
           </nav>
           <form role="search" onSubmit={submitSearch} className="ffm-desktop-search">
             <Search size={17} aria-hidden="true"/>
@@ -50,9 +50,9 @@ export function Header() {
         {mobileSearch&&<form role="search" className="ffm-mobile-search" onSubmit={submitSearch}><Search size={17} aria-hidden="true"/><input type="search" autoFocus maxLength={100} value={search} onChange={e=>setSearch(e.target.value)} placeholder="O que você procura?" aria-label="Buscar produtos"/><button type="submit">Buscar</button></form>}
         <nav aria-label="Menu para celular" className="ffm-nav-mobile">
           <Link to="/" activeOptions={{exact:true}} activeProps={{className:"ffm-nav-active"}}>Início</Link>
-          <Link to="/loja" search={{}} activeProps={{className:"ffm-nav-active"}}>Loja</Link>
-          <a href="/#marcas">Categorias</a>
-          <a href="/#destaques">Destaques</a>
+          <Link to="/loja" search={{}} activeProps={{className:"ffm-nav-active"}}>Produtos</Link>
+          <Link to="/" hash="marcas">Categorias</Link>
+          <Link to="/conta">Meus pedidos</Link>
         </nav>
       </div>
     </header>

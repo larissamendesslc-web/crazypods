@@ -376,3 +376,117 @@
  .crazy-checkout-payment-option {padding:12px 8px;white-space:normal;}
  .crazy-checkout-money-option {padding-inline:8px;white-space:normal;line-height:1.35;}
 }
+
+
+/* Customer journey — orientation, clear destinations and safe anchor offsets. */
+:root {
+  scroll-padding-top: 156px;
+}
+.ffm-entry-links {
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  max-width:1260px;
+  margin:-21px auto 22px;
+  padding:0 22px;
+}
+.ffm-entry-link {
+  position:relative;
+  display:flex;
+  min-width:0;
+  align-items:center;
+  gap:15px;
+  padding:17px 18px;
+  min-height:88px;
+  border:1px solid var(--ffm-stroke);
+  border-radius:19px;
+  color:var(--ffm-ink);
+  background:linear-gradient(124deg,color-mix(in srgb,var(--ffm-surface) 96%,var(--ffm-main)),var(--ffm-main));
+  box-shadow:0 13px 34px rgba(0,0,0,.23);
+  text-decoration:none;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.ffm-entry-link > svg:first-child {width:42px;height:42px;flex:none;padding:10px;border:1px solid var(--ffm-stroke);border-radius:12px;color:var(--ffm-highlight);background:rgba(var(--ffm-pulse),.09);}
+.ffm-entry-link > span {min-width:0;display:grid;gap:5px;flex:1;}
+.ffm-entry-link strong {display:block;overflow-wrap:anywhere;font-family:Unbounded,sans-serif;font-weight:840;font-size:11px;line-height:1.5;}
+.ffm-entry-link small {color:var(--ffm-subtle);font-size:10px;line-height:1.4;}
+.ffm-entry-link > svg:last-child {flex:none;width:16px;color:var(--ffm-highlight);}
+.ffm-entry-link:hover {transform:translateY(-4px);border-color:var(--ffm-highlight);box-shadow:0 16px 40px rgba(var(--ffm-pulse),.12);}
+.ffm-entry-link:focus-visible,
+.ffm-benefit-action:focus-visible,
+.ffm-breadcrumbs a:focus-visible {outline:2px solid var(--ffm-highlight);outline-offset:4px;}
+.ffm-home #marcas,.ffm-home #destaques,.ffm-home #como-comprar {scroll-margin-top:156px;}
+.crazy-shop-filters#catalogo {scroll-margin-top:160px;}
+.ffm-breadcrumbs {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:9px;
+  min-height:21px;
+  margin-bottom:23px;
+  color:var(--ffm-subtle);
+  font-size:11px;
+  font-weight:700;
+}
+.ffm-breadcrumbs a {color:var(--ffm-highlight);text-decoration:none;transition:opacity .2s ease;}
+.ffm-breadcrumbs a:hover{opacity:.75;}
+.ffm-how-to-shop {padding-top:75px;}
+.ffm-how-to-shop .ffm-benefits {margin-top:0;}
+.ffm-benefit-action {
+  color:var(--ffm-ink);
+  text-align:left;
+  text-decoration:none;
+  font:inherit;
+  cursor:pointer;
+}
+.ffm-benefit-action > .ffm-benefit-step {flex:none;align-self:flex-start;color:var(--ffm-highlight);font-size:12px;font-weight:900;letter-spacing:.08em;}
+.ffm-benefit-action .ffm-benefit-icon {width:45px;height:45px;}
+.ffm-benefit-action > div:nth-of-type(2){flex:1;min-width:0;}
+.ffm-benefit-action .ffm-benefit-go {flex:none;align-self:center;color:var(--ffm-highlight);opacity:.7;}
+.ffm-benefit-action:hover {box-shadow:0 17px 38px rgba(var(--ffm-pulse),.12);}
+.ffm-opening-state{width:100%;}
+.ffm-opening-progress{width:min(220px,70%);height:3px;margin-top:29px;overflow:hidden;border-radius:99px;background:rgba(var(--ffm-pulse),.18);}
+.ffm-opening-progress span{display:block;width:36%;height:100%;border-radius:99px;background:var(--ffm-gradient);animation:ffm-opening 1.4s ease-in-out infinite alternate;}
+@keyframes ffm-opening{from{transform:translateX(-80%)}to{transform:translateX(280%)}}
+.crazy-shop-page .crazy-shop-cover {margin-top:0;}
+/* Keep catalog filters below the sticky two-row navigation. */
+.crazy-shop-page .crazy-shop-filters{top:9rem;}
+@media(min-width:931px){ .crazy-shop-page .crazy-shop-filters{top:7.75rem;} }
+@media(max-width:930px) {
+  :root {scroll-padding-top:150px;}
+  .ffm-home #marcas,.ffm-home #destaques,.ffm-home #como-comprar {scroll-margin-top:150px;}
+  .crazy-shop-filters#catalogo{scroll-margin-top:160px;}
+}
+@media(max-width:720px) {
+  .ffm-hero-shell {padding-top:32px;padding-bottom:34px;}
+  .ffm-hero-description {margin-top:13px;}
+  .ffm-hero-actions {margin-top:19px;}
+  .ffm-hero-trust {margin-top:17px;}
+  .ffm-hero-display {min-height:280px;height:280px;margin-top:7px;}
+  .ffm-display-product{height:255px;}
+  .ffm-display-season{max-height:285px;}
+  .ffm-entry-links {grid-template-columns:1fr;gap:9px;padding:0 17px;margin:-7px auto 15px;}
+  .ffm-entry-link {min-height:65px;padding:11px 14px;gap:12px;border-radius:15px;}
+  .ffm-entry-link > svg:first-child {width:36px;height:36px;padding:8px;}
+  .ffm-entry-link strong {font-size:11px;}
+  .ffm-entry-link small {font-size:10px;}
+  .ffm-how-to-shop {padding-top:55px;}
+  .ffm-benefit-action{min-height:94px;gap:11px;}
+  .ffm-benefit-action .ffm-benefit-icon{width:40px;height:40px;}
+  .ffm-breadcrumbs {margin-bottom:14px;font-size:10px;}
+  .ffm-home #marcas,.ffm-home #destaques,.ffm-home #como-comprar {scroll-margin-top:151px;}
+}
+@media(max-width:390px) {
+  .ffm-hero-display {min-height:250px;height:250px;}
+  .ffm-display-product {height:225px;}
+  .ffm-entry-links{padding:0 13px;}
+  .ffm-nav-mobile a{font-size:10px;}
+  .ffm-benefit-action{padding:13px;gap:9px;}
+  .ffm-benefit-action .ffm-benefit-icon{width:36px;height:36px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .ffm-opening-progress span{animation:none!important;}
+  .ffm-entry-link{transition:none!important;}
+}

@@ -11,7 +11,7 @@ export function useThemeSync() {
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
-  const theme = data?.theme ?? "smoke";
+  const theme = data?.theme ?? "padrao";
   useEffect(() => {
     document.documentElement.dataset["theme"] = theme;
   }, [theme]);
@@ -45,7 +45,7 @@ export const THEMES = [
   { id: "smoke", name: "Crazy Smoke · Black Edition", desc: "Preto intenso, fumaça animada e neon laranja", colors: ["#08070c", "#ff811f", "#b774fb"] },
   { id: "premium", name: "Crazy Pods Premium", desc: "Laranja neon, violeta e preto", colors: ["#0b0811", "#ff851b", "#b96aff"] },
   { id: "padrao", name: "Crazy Original · RGB", desc: "Flavor Flock Market: preto, rosa, roxo, azul e ciano", colors: ["#09070e", "#ff2d95", "#22d9e7"] },
-  { id: "natal", name: "Natal", desc: "Home clara, vermelho, verde e neve", colors: ["#f8fbf8", "#b52036", "#16744b"] },
+  { id: "natal", name: "Natal", desc: "Black Christmas: fundo escuro, vermelho, dourado e neve", colors: ["#110b14", "#ee5864", "#f2d19a"] },
   { id: "ano-novo", name: "Ano Novo", desc: "Azul-noturno, dourado e brilhos", colors: ["#070d20", "#f0cb79", "#a4bbf3"] },
   { id: "halloween", name: "Halloween", desc: "Roxo, laranja e morcegos", colors: ["#12081b", "#ff881c", "#bd75fb"] },
 ] as const;

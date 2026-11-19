@@ -26,7 +26,8 @@ export function Footer(){
           <nav aria-label="Links do rodapé" className="ffm-footer-links">
             <Link to="/">Início</Link>
             <Link to="/loja" search={{}}>Ver catálogo</Link>
-            <a href="/#marcas">Categorias</a>
+            <Link to="/" hash="marcas">Categorias</Link>
+            <Link to="/" hash="como-comprar">Como comprar</Link>
             <Link to="/conta">Minha conta e pedidos</Link>
           </nav>
         </div>

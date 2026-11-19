@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useCart } from "@/lib/cart";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap, ShoppingBag } from "lucide-react";
 import { categoriesQuery, productsQuery, settingsQuery } from "@/lib/queries";
@@ -25,16 +27,24 @@ export const Route = createFileRoute("/")({
 });
 
 function SafeLink({ href, children, className }: { href:string; children: ReactNode; className:string }) {
-  return <a href={validHomeLink(href) ? href : "/loja"} className={className}>{children}</a>;
+  const destination = validHomeLink(href) ? href.trim() : "/loja";
+  if (destination === "/loja") return <Link to="/loja" search={{}} className={className}>{children}</Link>;
+  if (destination === "/conta") return <Link to="/conta" className={className}>{children}</Link>;
+  if (destination === "#marcas" || destination === "/#marcas") return <Link to="/" hash="marcas" className={className}>{children}</Link>;
+  if (destination === "#destaques" || destination === "/#destaques") return <Link to="/" hash="destaques" className={className}>{children}</Link>;
+  if (destination === "#como-comprar" || destination === "/#como-comprar") return <Link to="/" hash="como-comprar" className={className}>{children}</Link>;
+  return <a href={destination} className={className}>{children}</a>;
 }
 
 function Home() {
-  const {data:settings}=useQuery(settingsQuery);
-  const theme=normalizeStoreTheme(settings?.theme);
+  const {data:settings,isPending:settingsPending}=useQuery(settingsQuery);
+  const theme=normalizeStoreTheme(settings?.theme ?? "padrao");
+  const cart=useCart();
+  const routeHash=useRouterState({select:s=>s.location.hash});
   const experience=themeExperience(theme);
-  const {data:stored}=useQuery(homeDesignQuery);
+  const {data:stored,isPending:homePending}=useQuery(homeDesignQuery);
   const home=stored??defaultHome;
-  const {data:variants=[]}=useQuery(homeThemeVariantsQuery);
+  const {data:variants=[],isPending:variantPending}=useQuery(homeThemeVariantsQuery);
   const selected=resolveThemeVariant(theme,variants);
   const copy=resolveThemeCopy(theme,home,selected);
   const {data:slots=[]}=useQuery(homeFeatureCardsQuery);
@@ -51,6 +61,15 @@ function Home() {
   const showSide=home.show_side_art||!!home.left_image_url||!!home.right_image_url;
   const mainTitle=copy.title.trim();
   const highlight=copy.highlight.trim();
+  const isOpening= settingsPending || homePending || variantPending;
+  // Category/highlight links must find their target even if the Home data arrives after navigation.
+  useEffect(()=>{
+    if (isOpening || !routeHash) return;
+    const target=String(routeHash).replace(/^#/,"");
+    if (!["marcas","destaques","como-comprar"].includes(target)) return;
+    const frame=requestAnimationFrame(()=>document.getElementById(target)?.scrollIntoView({block:"start",behavior:"instant"}));
+    return ()=>cancelAnimationFrame(frame);
+  },[routeHash,isOpening]);
 
   return (
     <div className={["ffm-home","ffm-home-"+theme].join(" ")} data-heritage-home="true" data-experience={theme}>
@@ -60,6 +79,12 @@ function Home() {
         {theme==="smoke"&&<SmokeFX enabled={home.smoke_enabled} intensity={home.smoke_intensity} motion={home.motion_preset}/>}
         <div className="ffm-hero-shell">
           <div className="ffm-hero-copy animate-rise">
+            {isOpening ? <div className="ffm-opening-state" role="status" aria-live="polite">
+              <span className="ffm-hero-eyebrow"><Sparkles size={15}/> CRAZY PODS</span>
+              <h1 className="ffm-hero-title">Sua próxima <span>descoberta.</span></h1>
+              <p className="ffm-hero-description">Preparando a experiência da loja...</p>
+              <div className="ffm-opening-progress" aria-hidden="true"><span/></div>
+            </div> : <>
             <span className="ffm-hero-eyebrow"><Sparkles size={15} aria-hidden="true"/>{copy.eyebrow}</span>
             <p className="ffm-hero-edition"><span className="ffm-neon-line"/> CRAZY PODS / ORIGINAL EXPERIENCE</p>
             <h1 className="ffm-hero-title">{mainTitle}<span>{highlight}</span></h1>
@@ -69,20 +94,21 @@ function Home() {
               <SafeLink href={home.secondary_link} className="ffm-button ffm-button-outline">{home.secondary_label} <ArrowUpRight size={19} aria-hidden="true"/></SafeLink>
             </div>
             <div className="ffm-hero-trust">
-              <span><ShieldCheck size={17} aria-hidden="true"/> Área de pedidos protegida</span>
-              <span><Truck size={17} aria-hidden="true"/> Acompanhe a entrega</span>
+              <span><ShieldCheck size={17} aria-hidden="true"/> Compra com conta segura</span>
+              <span><Truck size={17} aria-hidden="true"/> Pedidos acompanhados</span>
             </div>
+            </>}
           </div>
           <div className="ffm-hero-display" style={{"--hero-art-scale":home.hero_art_scale/100} as CSSProperties} aria-label="Vitrine Crazy Pods">
             <div className="ffm-display-ring ffm-display-ring-one" aria-hidden="true"/>
             <div className="ffm-display-ring ffm-display-ring-two" aria-hidden="true"/>
             <div className="ffm-display-light" aria-hidden="true"/>
-            {artImage?(
+            {!isOpening && artImage?(
               <div className="ffm-display-product">
                 <ProductStage src={artImage} alt={artAlt} accent={featured?.accent_color} size="lg" float className="ffm-display-product-stage h-full w-full"/>
                 <span className="ffm-display-caption">{home.center_image_url?home.center_caption:featured?.name}</span>
               </div>
-            ):themeStage?(
+            ):!isOpening && themeStage?(
               <img src={themeStage} className="ffm-display-season" alt="" aria-hidden="true" decoding="async" width={1000} height={950}/>
             ):(
               <div className="ffm-display-brand" aria-hidden="true"><span>CRAZY</span><strong>PODS</strong><small>SINTA O IMPACTO</small></div>
@@ -96,6 +122,11 @@ function Home() {
         <div className="ffm-hero-bottom" aria-hidden="true"/>
       </section>
 
+      <nav className="ffm-entry-links" aria-label="O que você quer fazer?">
+        <Link to="/loja" search={{}} className="ffm-entry-link"><ShoppingBag size={21} aria-hidden="true"/><span><strong>Comprar agora</strong><small>Explorar os produtos</small></span><ArrowUpRight size={16}/></Link>
+        <Link to="/" hash="marcas" className="ffm-entry-link"><Package size={21} aria-hidden="true"/><span><strong>Ver categorias</strong><small>Escolher por tipo</small></span><ArrowUpRight size={16}/></Link>
+        <Link to="/conta" className="ffm-entry-link"><Truck size={21} aria-hidden="true"/><span><strong>Meus pedidos</strong><small>Acompanhar a compra</small></span><ArrowUpRight size={16}/></Link>
+      </nav>
       <div className="ffm-marquee" aria-label="Categorias e novidades">
         <div className="ffm-marquee-track">
           {Array.from({length:4},(_,i)=><span key={i} aria-hidden={i>0}>
@@ -123,7 +154,7 @@ function Home() {
           </div>
         ):actualCategories.length?(
           <div className="ffm-category-grid">
-            {actualCategories.slice(0,8).map((category,i)=><Link key={category.id} to="/loja" search={{marca:category.slug}} className="ffm-category-card">
+            {actualCategories.slice(0,8).map((category,i)=><Link key={category.id} to="/loja" search={{marca:category.slug}} hash="catalogo" className="ffm-category-card">
               <div className="ffm-category-art">{category.logo_url?<img src={category.logo_url} alt="" loading="lazy"/>:<span className="ffm-category-monogram">{category.name.slice(0,2)}</span>}</div>
               <div className="ffm-category-content"><span className="ffm-category-number">0{i+1}</span><h3>{category.name}</h3>{category.tagline&&<p>{category.tagline}</p>}</div>
               <ArrowUpRight className="ffm-category-arrow" size={20} aria-hidden="true"/>
@@ -148,15 +179,24 @@ function Home() {
         )}
       </section>
 
-      <section className="ffm-benefits ffm-section" aria-label="Sua experiência de compra">
-        <div className="ffm-benefit"><div className="ffm-benefit-icon"><Zap size={24} aria-hidden="true"/></div><div><h3>Compra descomplicada</h3><p>Encontre, escolha e finalize seu pedido.</p></div></div>
-        <div className="ffm-benefit"><div className="ffm-benefit-icon"><Truck size={24} aria-hidden="true"/></div><div><h3>Entrega acompanhada</h3><p>Confira o andamento pelo site.</p></div></div>
-        <div className="ffm-benefit"><div className="ffm-benefit-icon"><ShieldCheck size={24} aria-hidden="true"/></div><div><h3>Minha conta</h3><p>Seus dados e pedidos em um só lugar.</p></div></div>
+      <section id="como-comprar" className="ffm-section ffm-how-to-shop" aria-label="Como comprar">
+        <div className="ffm-section-heading"><div><p className="ffm-kicker">SIMPLES DO INÍCIO AO FIM · 03</p><h2>Compre em <span>3 passos.</span></h2><p>Você escolhe, confirma e acompanha sem sair do site.</p></div></div>
+        <div className="ffm-benefits">
+          <Link to="/loja" search={{}} className="ffm-benefit ffm-benefit-action">
+            <span className="ffm-benefit-step">01</span><div className="ffm-benefit-icon"><ShoppingBag size={24} aria-hidden="true"/></div><div><h3>Escolha seus produtos</h3><p>Veja o catálogo e adicione ao carrinho.</p></div><ArrowUpRight size={17} className="ffm-benefit-go"/>
+          </Link>
+          <button type="button" className="ffm-benefit ffm-benefit-action" onClick={()=>cart.setOpen(true)}>
+            <span className="ffm-benefit-step">02</span><div className="ffm-benefit-icon"><ShieldCheck size={24} aria-hidden="true"/></div><div><h3>Revise seu carrinho</h3><p>Confira os itens e prossiga ao checkout.</p></div><ArrowUpRight size={17} className="ffm-benefit-go"/>
+          </button>
+          <Link to="/conta" className="ffm-benefit ffm-benefit-action">
+            <span className="ffm-benefit-step">03</span><div className="ffm-benefit-icon"><Truck size={24} aria-hidden="true"/></div><div><h3>Acompanhe seu pedido</h3><p>Entre na conta e consulte o andamento.</p></div><ArrowUpRight size={17} className="ffm-benefit-go"/>
+          </Link>
+        </div>
       </section>
 
       <section className="ffm-final ffm-section">
-        <div><p className="ffm-kicker">CRAZY PODS · {experience.label.toUpperCase()}</p><h2>Seu estilo. <span>Sua escolha.</span></h2><p>Uma loja diferente do primeiro clique à próxima descoberta.</p></div>
-        <Link to="/loja" search={{}} className="ffm-button ffm-button-primary">Explorar a loja <ArrowRight size={19}/></Link>
+        <div><p className="ffm-kicker">CRAZY PODS · {experience.label.toUpperCase()}</p><h2>Seu pedido. <span>Tudo no controle.</span></h2><p>Já comprou? Consulte seus pedidos e acompanhe cada atualização pela sua conta.</p></div>
+        <Link to="/conta" className="ffm-button ffm-button-primary">Meus pedidos <ArrowRight size={19}/></Link>
       </section>
     </div>
   );

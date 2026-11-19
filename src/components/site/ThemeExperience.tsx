@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { themeExperience, normalizeStoreTheme } from "@/lib/theme-experience";
 
 export function ThemePageRibbon({ theme }: { theme: string }) {
-  const id = normalizeStoreTheme(theme);
+  const id = normalizeStoreTheme(theme ?? "padrao");
   const experience = themeExperience(id);
   if (id !== "natal" && id !== "ano-novo" && id !== "halloween") return null;
   return (
