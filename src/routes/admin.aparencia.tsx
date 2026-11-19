@@ -31,8 +31,9 @@ function Appearance() {
 
   return (
     <>
-      <PageTitle title="Aparência" sub="Tema sazonal e informações da loja" />
-      <h2 className="mb-3 font-display font-bold">Tema da loja</h2>
+      <PageTitle title="Aparência" sub="Temas completos: cenário, Home, catálogo, cores e páginas dos clientes" />
+      <h2 className="mb-2 font-display font-bold">Tema da loja</h2>
+      <p className="mb-4 text-sm text-muted-foreground">Muda automaticamente o visual da Home, da Loja e das páginas dos clientes. Cada temporada possui cenário e identidade próprios; o catálogo, os pedidos e os pagamentos permanecem intactos.</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {THEMES.map((t) => {
           const active = (s?.theme ?? "padrao") === t.id;

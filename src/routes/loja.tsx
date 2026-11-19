@@ -5,7 +5,8 @@ import { Search } from "lucide-react";
 import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Input } from "@/components/ui/input";
-import christmasScene from "@/assets/christmas-scene.jpg";
+import { ThemeShopCover } from "@/components/site/ThemeExperience";
+import { settingsQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (s: Record<string, unknown>): { marca?: string | undefined; q?: string | undefined } => ({
@@ -31,6 +32,7 @@ function Shop() {
   useEffect(() => { setQ(search ?? ""); }, [search]);
   const { data: products = [], isLoading } = useQuery(productsQuery);
   const { data: cats = [] } = useQuery(categoriesQuery);
+  const { data: storeSettings } = useQuery(settingsQuery);
   const current = cats.find((c) => c.slug === marca);
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -41,18 +43,14 @@ function Shop() {
   }, [products, current, q]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-8">
-      <div className="christmas-only winter-collection mb-6">
-        <img src={christmasScene} alt="" aria-hidden width={1536} height={1024} loading="lazy" className="winter-collection-image" />
-        <p className="relative text-xs font-bold uppercase text-accent">✦ Edição de Natal · Crazy</p>
-        <p className="relative mt-2 font-display text-2xl font-bold sm:text-3xl">O inverno chegou.<br /><span className="text-primary">A vibe é Crazy.</span></p>
-      </div>
+    <div className="crazy-shop-page mx-auto max-w-7xl px-4 pt-8">
+      <ThemeShopCover theme={storeSettings?.theme ?? "smoke"} />
       <h1 className="pr-3 text-3xl font-black uppercase italic leading-relaxed sm:text-6xl">
         {current ? <span className="text-gradient-brand">{current.name}</span> : <>A <span className="text-gradient-brand">loja</span></>}
       </h1>
       {current?.tagline && <p className="mt-2 text-muted-foreground">{current.tagline}</p>}
 
-      <div className="sticky top-[7.5rem] z-30 -mx-4 mt-6 space-y-3 bg-background/85 px-4 py-3 backdrop-blur md:top-[6.5rem]">
+      <div className="crazy-shop-filters sticky top-[7.5rem] z-30 -mx-4 mt-6 space-y-3 bg-background/85 px-4 py-3 backdrop-blur md:top-[6.5rem]">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar produtos..." className="h-12 rounded-full pl-11" />

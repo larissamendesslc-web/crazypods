@@ -3,8 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { settingsQuery } from "@/lib/queries";
 
 export function useThemeSync() {
-  const { data } = useQuery(settingsQuery);
-  const theme = data?.theme ?? "padrao";
+  const { data } = useQuery({
+    ...settingsQuery,
+    // A manager's theme change should reach client browsers without a manual refresh.
+    // Polling also works when Supabase Realtime is not enabled for site_settings.
+    refetchInterval: 12_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+  });
+  const theme = data?.theme ?? "smoke";
   useEffect(() => {
     document.documentElement.dataset["theme"] = theme;
   }, [theme]);

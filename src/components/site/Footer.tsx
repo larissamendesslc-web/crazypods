@@ -3,16 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Instagram, Mail, ShieldCheck } from "lucide-react";
 import { settingsQuery } from "@/lib/queries";
 import { Logo } from "./Logo";
+import { themeExperience, normalizeStoreTheme } from "@/lib/theme-experience";
 
 export function Footer() {
   const {data:settings}=useQuery(settingsQuery);
   const phone=(settings?.whatsapp||"").replace(/\D/g,"");
+  const selected = normalizeStoreTheme(settings?.theme);
+  const experience = themeExperience(selected);
+  const seasonal = selected === "natal" || selected === "ano-novo" || selected === "halloween";
   return (
     <footer className="crazy-site-footer mt-24 border-t pb-28 pt-14">
+      {seasonal && <div className="crazy-footer-season-strip" aria-label={experience.label}>
+        <span aria-hidden="true">✦</span><strong>{experience.ribbon}</strong><span aria-hidden="true">✦</span>
+      </div>}
       <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-[1.2fr_1fr_1fr]">
         <div>
           <Logo className="w-48" />
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">A essência da Crazy Pods em uma nova experiência. Uma vitrine feita para surpreender — do primeiro clique à sua entrega.</p>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">{experience.footer} Uma vitrine para novas descobertas — do primeiro clique à sua entrega.</p>
           <div className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-primary"><ShieldCheck size={17}/> Seus pedidos protegidos pela sua conta</div>
         </div>
         <div className="text-sm">

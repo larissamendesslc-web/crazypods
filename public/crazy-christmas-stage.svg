@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 950" role="img" aria-label="Cenário natalino Crazy Pods com presentes, árvore decorada e luzes vermelhas">
+<defs>
+<radialGradient id="halo"><stop stop-color="#e82f4d" stop-opacity=".36"/><stop offset=".55" stop-color="#e82f4d" stop-opacity=".1"/><stop offset="1" stop-color="#d51337" stop-opacity="0"/></radialGradient>
+<radialGradient id="goldhalo"><stop stop-color="#ffc98a" stop-opacity=".37"/><stop offset="1" stop-color="#e3a761" stop-opacity="0"/></radialGradient>
+<linearGradient id="bag" x1=".08" y1="0" x2=".92" y2="1"><stop stop-color="#5a2034"/><stop offset=".27" stop-color="#200e1d"/><stop offset=".7" stop-color="#090a12"/><stop offset="1" stop-color="#3f1529"/></linearGradient>
+<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffdad1"/><stop offset=".25" stop-color="#d45c67"/><stop offset=".65" stop-color="#4d172b"/><stop offset="1" stop-color="#ffc49b"/></linearGradient>
+<linearGradient id="ribbon"><stop stop-color="#fff1c2"/><stop offset=".42" stop-color="#ba8a55"/><stop offset=".7" stop-color="#ffeac2"/><stop offset="1" stop-color="#9f6f40"/></linearGradient>
+<linearGradient id="green"><stop stop-color="#162f30"/><stop offset=".58" stop-color="#0a1c24"/><stop offset="1" stop-color="#2e5050"/></linearGradient>
+<linearGradient id="red"><stop stop-color="#fa5d6b"/><stop offset=".6" stop-color="#940e32"/><stop offset="1" stop-color="#401026"/></linearGradient>
+<filter id="soft"><feGaussianBlur stdDeviation="35"/></filter>
+<filter id="shadow"><feGaussianBlur stdDeviation="17"/></filter>
+<filter id="light"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<ellipse cx="553" cy="448" rx="420" ry="360" fill="url(#halo)"/>
+<ellipse cx="667" cy="557" rx="325" ry="280" fill="url(#goldhalo)" opacity=".65"/>
+<ellipse cx="520" cy="838" rx="365" ry="48" fill="#00030a" opacity=".8" filter="url(#soft)"/>
+<path d="M70 820Q450 760 900 825L1000 950H0Z" fill="#1b1222" opacity=".7"/>
+<g opacity=".9">
+<path d="M783 207L645 450L704 451L625 575L691 576L615 698L918 698L831 573L893 574L814 449L875 448Z" fill="url(#green)" stroke="#6e8d77" stroke-opacity=".45" stroke-width="3"/>
+<path d="M785 236L713 441L776 457L715 575L779 578L696 691" fill="none" stroke="#c8c69b" stroke-opacity=".17" stroke-width="12"/>
+<path d="M787 252L832 423L778 457L836 553L791 570L868 675" fill="none" stroke="#a4ba97" stroke-opacity=".11" stroke-width="14"/>
+<path d="M675 444Q760 486 866 440M653 557Q766 598 890 551M630 660Q753 704 913 655" fill="none" stroke="url(#ribbon)" stroke-width="6" opacity=".9"/>
+<circle cx="715" cy="473" r="12" fill="#f2aa91"/><circle cx="822" cy="558" r="14" fill="#ef5b6e"/><circle cx="711" cy="631" r="15" fill="#d4b37e"/><circle cx="850" cy="641" r="11" fill="#f8d1a2"/><circle cx="780" cy="378" r="9" fill="#ed859b"/>
+<path d="M784 145L795 183L835 186L803 212L811 253L784 231L753 253L766 212L735 186L771 183Z" fill="#fbe1ab" stroke="#fff4dc" stroke-width="4"/>
+<circle cx="784" cy="197" r="39" fill="#ffdda0" opacity=".28" filter="url(#light)"/>
+</g>
+<!-- boutique 3D shopping bag -->
+<path d="M287 333L393 302L659 309L615 348Z" fill="#55263a" stroke="#e18d87" stroke-width="4"/>
+<path d="M615 348L659 309L710 733L660 769Z" fill="#461b30" stroke="#c27e6f" stroke-width="5"/>
+<path d="M287 333L615 348L660 769L250 751Z" fill="url(#bag)" stroke="url(#edge)" stroke-width="7"/>
+<path d="M354 343C341 247 366 198 425 192C480 186 504 258 499 352" fill="none" stroke="#190c19" stroke-width="25"/>
+<path d="M354 343C341 247 366 198 425 192C480 186 504 258 499 352" fill="none" stroke="url(#ribbon)" stroke-width="9"/>
+<path d="M445 348C443 248 482 192 545 192C614 193 624 276 619 350" fill="none" stroke="#1a0b19" stroke-width="25"/>
+<path d="M445 348C443 248 482 192 545 192C614 193 624 276 619 350" fill="none" stroke="url(#ribbon)" stroke-width="9"/>
+<path d="M300 377L599 393" stroke="#e49d8d" stroke-opacity=".35" stroke-width="4"/>
+<path d="M315 712L627 736" stroke="#ffb6a8" stroke-opacity=".18" stroke-width="6"/>
+<rect x="339" y="469" width="241" height="141" rx="11" fill="#0d0c18" opacity=".62"/>
+<text x="461" y="527" fill="#fdf4f0" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="42" text-anchor="middle" letter-spacing="-2">CRAZY</text>
+<text x="462" y="571" fill="#f7d1a4" font-family="Arial, Helvetica, sans-serif" font-style="italic" font-size="38" text-anchor="middle">Pods</text>
+<path d="M356 590H563" stroke="#d9a36b" stroke-width="2" opacity=".65"/>
+<!-- gift boxes -->
+<g transform="translate(150 697) rotate(-13)">
+<rect x="0" y="0" width="172" height="137" rx="7" fill="url(#red)" stroke="#f18a84" stroke-width="4"/>
+<path d="M63 0V137M0 47H172" stroke="url(#ribbon)" stroke-width="21"/>
+<path d="M69 0C-13 -17 21 -77 65 -21L86 -1C146 -80 184 -20 95 4" fill="none" stroke="#efca99" stroke-width="15"/>
+</g>
+<g transform="translate(657 728) rotate(8)">
+<rect width="162" height="109" rx="7" fill="#34233c" stroke="#f4cba2" stroke-width="4"/>
+<path d="M79 0V109M0 39H162" stroke="url(#ribbon)" stroke-width="17"/>
+</g>
+<path d="M170 268l6 18 18 6-18 5-6 19-6-19-18-5 18-6Z" fill="#ffd9a7"/>
+<path d="M876 323l7 21 20 7-20 7-7 20-7-20-20-7 20-7Z" fill="#ffe4b9"/>
+<circle cx="174" cy="265" r="46" fill="#ffd6a0" opacity=".3" filter="url(#shadow)"/>
+</svg>

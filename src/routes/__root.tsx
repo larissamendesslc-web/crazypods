@@ -7,6 +7,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import themePaletteCss from "../styles/theme-palettes.css?url";
 import crazySmokeCss from "../styles/crazy-smoke.css?url";
+import seasonalExperienceCss from "../styles/seasonal-experience.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/lib/cart";
@@ -15,6 +16,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { CartDrawer, FloatingCart } from "@/components/site/CartDrawer";
 import { ThemeDecor, useThemeSync } from "@/components/site/ThemeDecor";
+import { ThemePageRibbon } from "@/components/site/ThemeExperience";
 
 function NotFoundComponent() {
   return (
@@ -62,6 +64,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: themePaletteCss },
       { rel: "stylesheet", href: crazySmokeCss },
+      { rel: "stylesheet", href: seasonalExperienceCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),
@@ -93,7 +96,8 @@ function StoreChrome() {
       <ThemeDecor theme={theme} />
       <PaymentTestModeBanner />
       <Header />
-      <main className="min-h-[70vh]"><Outlet /></main>
+      {path !== "/" && <ThemePageRibbon theme={theme} />}
+      <main className="crazy-storefront-main min-h-[70vh]"><Outlet /></main>
       <Footer />
       <CartDrawer />
       <FloatingCart />

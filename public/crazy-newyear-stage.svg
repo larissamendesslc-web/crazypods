@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 950" role="img" aria-label="Cenário de Ano-Novo Crazy Pods com sacola dourada, estrelas e fogos de artifício">
+<defs>
+<radialGradient id="halo"><stop stop-color="#caac70" stop-opacity=".3"/><stop offset="1" stop-color="#9178d8" stop-opacity="0"/></radialGradient>
+<linearGradient id="front" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#474457"/><stop offset=".16" stop-color="#181c36"/><stop offset=".65" stop-color="#090e24"/><stop offset="1" stop-color="#22223d"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff3ca"/><stop offset=".3" stop-color="#d6a75c"/><stop offset=".6" stop-color="#77563a"/><stop offset=".86" stop-color="#ffe5a2"/><stop offset="1" stop-color="#b8864e"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="7"/></filter>
+<filter id="soft"><feGaussianBlur stdDeviation="35"/></filter>
+</defs>
+<ellipse cx="570" cy="468" rx="416" ry="370" fill="url(#halo)"/>
+<ellipse cx="540" cy="834" rx="370" ry="42" fill="#020613" opacity=".86" filter="url(#soft)"/>
+<path d="M0 827Q490 774 1000 834V950H0Z" fill="#121a35" opacity=".64"/>
+<g stroke="url(#gold)" stroke-width="5" stroke-linecap="round" opacity=".9">
+<path d="M819 145V63M819 145L875 76M819 145L915 143M819 145L879 212M819 145L826 232M819 145L755 214M819 145L723 155M819 145L756 78"/>
+<path d="M177 256V178M177 256L238 208M177 256L264 256M177 256L231 311M177 256L177 342M177 256L125 317M177 256L94 257M177 256L119 201"/>
+</g>
+<circle cx="819" cy="145" r="74" fill="none" stroke="#f1cb81" stroke-dasharray="3 18" stroke-width="3"/>
+<circle cx="177" cy="256" r="65" fill="none" stroke="#f0c27b" stroke-dasharray="3 15" stroke-width="2"/>
+<circle cx="819" cy="145" r="24" fill="#ffe8a7" opacity=".33" filter="url(#glow)"/>
+<g fill="#ffe7b2">
+<path d="M705 325l8 20 20 8-20 7-8 20-8-20-20-7 20-8Z"/>
+<path d="M311 181l7 18 18 7-18 7-7 18-7-18-18-7 18-7Z"/>
+<path d="M901 406l5 14 14 5-14 5-5 14-5-14-14-5 14-5Z"/>
+<circle cx="147" cy="462" r="4"/><circle cx="905" cy="553" r="3"/><circle cx="689" cy="125" r="4"/><circle cx="344" cy="98" r="3"/>
+</g>
+<!-- black and gold boutique bag -->
+<path d="M288 350L405 313L681 331L625 369Z" fill="#55465a" stroke="#e4be82" stroke-width="5"/>
+<path d="M625 369L681 331L732 740L679 774Z" fill="#423146" stroke="url(#gold)" stroke-width="6"/>
+<path d="M288 350L625 369L679 774L247 752Z" fill="url(#front)" stroke="url(#gold)" stroke-width="8"/>
+<path d="M355 356C339 252 371 201 431 199C499 198 509 280 508 365" fill="none" stroke="#0c1022" stroke-width="28"/>
+<path d="M355 356C339 252 371 201 431 199C499 198 509 280 508 365" fill="none" stroke="url(#gold)" stroke-width="9"/>
+<path d="M458 365C448 252 503 195 561 205C629 214 638 290 627 369" fill="none" stroke="#0c1022" stroke-width="28"/>
+<path d="M458 365C448 252 503 195 561 205C629 214 638 290 627 369" fill="none" stroke="url(#gold)" stroke-width="9"/>
+<path d="M289 396L623 417" stroke="#fff1c6" stroke-width="3" opacity=".33"/>
+<rect x="331" y="487" width="262" height="145" rx="9" fill="#0a1028" opacity=".65"/>
+<text x="463" y="539" fill="#fdf5e3" text-anchor="middle" font-size="44" font-family="Arial, sans-serif" font-weight="900" letter-spacing="-2">CRAZY</text>
+<text x="462" y="583" fill="#f4cd80" font-size="40" font-family="Arial,sans-serif" font-style="italic" text-anchor="middle">Pods</text>
+<path d="M359 607H573" stroke="#ddac6d" opacity=".8" stroke-width="2"/>
+<path d="M137 739Q204 718 264 743" stroke="#eed1a0" stroke-width="9" opacity=".8" fill="none"/>
+<path d="M729 744Q802 726 861 745" stroke="#eed1a0" stroke-width="9" opacity=".7" fill="none"/>
+<circle cx="750" cy="638" r="54" fill="none" stroke="#cba35a" stroke-width="3" opacity=".44"/>
+<circle cx="750" cy="638" r="37" fill="none" stroke="#fff0ca" stroke-width="2" opacity=".38"/>
+</svg>

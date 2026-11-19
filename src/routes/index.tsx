@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap } 
 import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
 import { defaultHome, homeDesignQuery, homeFeatureCardsQuery, validHomeLink } from "@/lib/home-design";
+import { themeExperience, normalizeStoreTheme, themedDefault } from "@/lib/theme-experience";
 import { settingsQuery } from "@/lib/queries";
 import { SmokeFX } from "@/components/site/SmokeFX";
 import type { CSSProperties } from "react";
@@ -30,7 +31,15 @@ function Home() {
   const { data: stored } = useQuery(homeDesignQuery);
   const home = stored ?? defaultHome;
   const {data:siteSettings} = useQuery(settingsQuery);
-  const isSmoke = siteSettings?.theme === "smoke";
+  const theme = normalizeStoreTheme(siteSettings?.theme);
+  const experience = themeExperience(theme);
+  const isSmoke = theme === "smoke";
+  const seasonal = theme === "natal" || theme === "ano-novo" || theme === "halloween";
+  const stageArt = experience.art;
+  const heroEyebrow = themedDefault(defaultHome.eyebrow, home.eyebrow, experience.eyebrow);
+  const heroTitle = themedDefault(defaultHome.title, home.title, experience.title);
+  const heroHighlight = themedDefault(defaultHome.highlight, home.highlight, experience.highlight);
+  const heroSubtitle = themedDefault(defaultHome.subtitle, home.subtitle, experience.subtitle);
   const { data: slots = [] } = useQuery(homeFeatureCardsQuery);
   const { data: products = [], isPending: productsPending } = useQuery(productsQuery);
   const { data: categories = [] } = useQuery(categoriesQuery);
@@ -38,8 +47,8 @@ function Home() {
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name;
 
   return (
-    <div className="crazy-premium-home">
-      <section className="crazy-premium-hero" aria-label="Boas-vindas à Crazy Pods">
+    <div className={`crazy-premium-home crazy-experience-${theme}`} data-experience={theme}>
+      <section className={`crazy-premium-hero ${seasonal ? "crazy-season-hero" : ""}`} aria-label="Boas-vindas à Crazy Pods">
         <img
           src={home.background_url || (isSmoke ? "/crazy-smoke-wisp.svg" : "/crazy-premium-scene.svg")}
           className={`crazy-hero-backdrop ${home.background_url ? "" : "crazy-demo-scene"}`}
@@ -50,12 +59,14 @@ function Home() {
           fetchPriority="high"
         />
         <div className="crazy-hero-vignette" aria-hidden="true" />
+        {seasonal && <div className="crazy-season-sky" aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>}
         {isSmoke && <SmokeFX enabled={home.smoke_enabled} intensity={home.smoke_intensity} motion={home.motion_preset} />}
         <div className="crazy-hero-grid">
           <div className="crazy-hero-copy animate-rise">
-            <p className="crazy-hero-eyebrow"><Sparkles size={14} aria-hidden="true" /> {home.eyebrow}</p>
-            <h1>{home.title}<span>{home.highlight}</span></h1>
-            <p className="crazy-hero-description">{home.subtitle}</p>
+            <p className="crazy-hero-eyebrow"><Sparkles size={14} aria-hidden="true" /> {heroEyebrow}</p>
+            <h1>{heroTitle}<span>{heroHighlight}</span></h1>
+            <p className="crazy-hero-description">{heroSubtitle}</p>
+            {seasonal && <div className="crazy-season-signature"><span className="crazy-signature-line"/><span>{experience.ribbon}</span><span className="crazy-signature-line"/></div>}
             <div className="crazy-hero-actions">
               <ActionLink href={home.primary_link} className="crazy-cta-primary">{home.primary_label} <ArrowRight size={19} aria-hidden="true" /></ActionLink>
               <ActionLink href={home.secondary_link} className="crazy-cta-secondary">{home.secondary_label} <ArrowUpRight size={17} aria-hidden="true" /></ActionLink>
@@ -66,28 +77,29 @@ function Home() {
             </div>
           </div>
 
-          <div className={`crazy-showcase ${isSmoke ? "crazy-smoke-showcase" : ""}`} style={{"--hero-art-scale": home.hero_art_scale / 100} as CSSProperties} aria-label="Vitrine visual editável da Crazy Pods">
+          <div className={`crazy-showcase ${isSmoke ? "crazy-smoke-showcase" : ""} ${seasonal ? "crazy-season-showcase" : ""}`} style={{"--hero-art-scale": home.hero_art_scale / 100} as CSSProperties} aria-label="Vitrine visual editável da Crazy Pods">
+            {stageArt && <div className="crazy-season-stage" aria-hidden="true"><img src={stageArt} alt="" width={1000} height={950} decoding="async" fetchPriority="high" /><span className="crazy-season-stage-glow" /></div>}
             {isSmoke && <div className="crazy-smoke-bag-scene" aria-hidden="true">
               <img src="/crazy-smoke-bag.svg" alt="" width={960} height={950} decoding="async" />
               <span className="crazy-smoke-halo" />
             </div>}
             <div className="crazy-stage-glow" aria-hidden="true" />
             <div className="crazy-glass-orbit" aria-hidden="true" />
-            <div className="crazy-showcase-main">
+            {(!seasonal || !!home.center_image_url) && <div className="crazy-showcase-main">
               {home.center_image_url ? (
                 <img src={home.center_image_url} alt={home.center_caption || "Imagem em destaque"} className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
               ) : (
                 <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration crazy-main-cutout" decoding="async" />
               )}
               <span className="crazy-showcase-main-label">{home.center_caption}</span>
-            </div>
-            {(!isSmoke || home.show_side_art || !!home.left_image_url) && <div className="crazy-float-card crazy-float-left">
+            </div>}
+            {((!isSmoke && !seasonal) || home.show_side_art || !!home.left_image_url) && <div className="crazy-float-card crazy-float-left">
               <div className="crazy-float-visual">
                 {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
               </div>
               <span>{home.left_caption}</span>
             </div>}
-            {(!isSmoke || home.show_side_art || !!home.right_image_url) && <div className="crazy-float-card crazy-float-right">
+            {((!isSmoke && !seasonal) || home.show_side_art || !!home.right_image_url) && <div className="crazy-float-card crazy-float-right">
               <div className="crazy-float-visual">
                 {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
               </div>
@@ -98,6 +110,7 @@ function Home() {
         <div className="crazy-hero-bottom-glow" aria-hidden="true" />
       </section>
 
+      {seasonal && <div className="crazy-season-marquee" aria-label={experience.ribbon}><span>✦</span><strong>{experience.ribbon}</strong><span>✦</span><strong>{experience.deliveryMessage}</strong><span>✦</span></div>}
       <section className="crazy-promise-strip" aria-label="Experiência de compra">
         <div><Zap size={22} aria-hidden="true" /><span><strong>Vitrine renovada</strong><small>Escolhas em destaque</small></span></div>
         <div><ShieldCheck size={22} aria-hidden="true" /><span><strong>Compra com confiança</strong><small>Seus pedidos na sua conta</small></span></div>
@@ -106,9 +119,9 @@ function Home() {
 
       <section id="destaques" className="crazy-premium-section crazy-feature-section">
         <div className="crazy-section-heading">
-          <p className="crazy-section-kicker">CONHEÇA A CRAZY PODS</p>
-          <h2>Explore nossos <span>destaques</span></h2>
-          <p>Uma vitrine diferente a cada novidade. Descubra o que a loja preparou para você.</p>
+          <p className="crazy-section-kicker">{experience.collectionKicker}</p>
+          <h2>{experience.collectionTitle} <span>{experience.collectionHighlight}</span></h2>
+          <p>{experience.collectionDescription}</p>
         </div>
         {visibleCards.length > 0 ? (
           <div className="crazy-editorial-grid">
@@ -152,7 +165,7 @@ function Home() {
 
       <section className="crazy-premium-section crazy-products-section">
         <div className="crazy-products-head">
-          <div><p className="crazy-section-kicker">SELEÇÃO DA LOJA</p><h2>Na vitrine <span>agora</span></h2></div>
+          <div><p className="crazy-section-kicker">{experience.productsKicker}</p><h2>{experience.productsTitle} <span>{experience.productsHighlight}</span></h2></div>
           <Link to="/loja" search={{}} className="crazy-see-all">Ver loja inteira <ArrowRight size={18} /></Link>
         </div>
         {productsPending ? (
@@ -167,7 +180,7 @@ function Home() {
       </section>
 
       <section className="crazy-last-call crazy-premium-section">
-        <div><p className="crazy-section-kicker">CRAZY PODS</p><h2>Seu próximo achado merece <span>uma experiência à altura.</span></h2></div>
+        <div><p className="crazy-section-kicker">{experience.deliveryMessage}</p><h2>{experience.deliveryTitle} <span>{experience.footer}</span></h2></div>
         <Link to="/loja" search={{}} className="crazy-cta-primary">Explorar a loja <ArrowRight size={19} /></Link>
       </section>
     </div>
