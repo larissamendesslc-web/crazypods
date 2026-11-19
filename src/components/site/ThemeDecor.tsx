@@ -18,7 +18,7 @@ export function ThemeDecor({ theme }: { theme: string }) {
     })),
     [],
   );
-  if (theme === "padrao") return null;
+  if (theme === "padrao" || theme === "smoke") return null;
   return (
     <div aria-hidden className={`pointer-events-none fixed inset-0 z-40 overflow-hidden ${theme === "natal" ? "winter-snow" : ""}`}>
       {theme === "natal" && parts.slice(0, 14).map((p, i) => (
@@ -35,6 +35,7 @@ export function ThemeDecor({ theme }: { theme: string }) {
 }
 
 export const THEMES = [
+  { id: "smoke", name: "Crazy Smoke · Black Edition", desc: "Preto intenso, fumaça animada e neon laranja", colors: ["#08070c", "#ff811f", "#b774fb"] },
   { id: "premium", name: "Crazy Pods Premium", desc: "Laranja neon, violeta e preto", colors: ["#0b0811", "#ff851b", "#b96aff"] },
   { id: "padrao", name: "Crazy Neon", desc: "Preto, verde-limão e rosa neon em toda a Home", colors: ["#0b0f0b", "#cffc4d", "#ff5ddd"] },
   { id: "natal", name: "Natal", desc: "Home clara, vermelho, verde e neve", colors: ["#f8fbf8", "#b52036", "#16744b"] },

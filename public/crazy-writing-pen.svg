@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 520" role="img" aria-label="Caneta metálica ilustrativa, sem produto cadastrado">
+<defs>
+<linearGradient id="shaft" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#030407"/><stop offset=".09" stop-color="#3d393d"/><stop offset=".24" stop-color="#aeb0b8"/><stop offset=".4" stop-color="#19191f"/><stop offset=".62" stop-color="#05060b"/><stop offset=".79" stop-color="#353138"/><stop offset=".96" stop-color="#f78a31"/><stop offset="1" stop-color="#251018"/></linearGradient>
+<linearGradient id="cap"><stop stop-color="#ffca84"/><stop offset=".2" stop-color="#b65b29"/><stop offset=".49" stop-color="#15121b"/><stop offset=".8" stop-color="#a44717"/><stop offset="1" stop-color="#ffd19a"/></linearGradient>
+<filter id="shadow" x="-80%" y="-50%" width="260%" height="220%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g transform="rotate(27 230 270)">
+<ellipse cx="237" cy="443" rx="58" ry="15" fill="#000" opacity=".55" filter="url(#shadow)"/>
+<rect x="191" y="63" width="81" height="311" rx="27" fill="url(#shaft)" stroke="#c77736" stroke-width="3"/>
+<rect x="186" y="71" width="91" height="93" rx="23" fill="url(#shaft)" stroke="url(#cap)" stroke-width="5"/>
+<path d="M236 84L236 128" fill="none" stroke="#ffc38c" stroke-width="5" opacity=".78"/>
+<path d="M257 86L279 108L279 207" fill="none" stroke="#ffc17e" stroke-width="5" stroke-linecap="round" opacity=".86"/>
+<rect x="207" y="165" width="9" height="170" rx="4" fill="#fff" opacity=".16"/>
+<path d="M205 371L258 371L240 424L222 424Z" fill="url(#cap)" stroke="#cb6c34" stroke-width="3"/>
+<path d="M221 424L240 465L258 424Z" fill="#a1a5b4" stroke="#494653" stroke-width="3"/>
+<path d="M237 454L240 471L244 454Z" fill="#f0f0f6"/>
+</g>
+</svg>

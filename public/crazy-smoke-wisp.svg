@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="610" viewBox="0 0 1060 610" preserveAspectRatio="none" aria-hidden="true">
+<defs>
+<filter id="fog" x="-35%" y="-60%" width="170%" height="220%"><feGaussianBlur stdDeviation="28"/></filter>
+<radialGradient id="p"><stop stop-color="#ffac77" stop-opacity=".66"/><stop offset=".42" stop-color="#e1a2df" stop-opacity=".28"/><stop offset="1" stop-color="#b8a0e0" stop-opacity="0"/></radialGradient>
+<radialGradient id="v"><stop stop-color="#ccc6ee" stop-opacity=".68"/><stop offset=".6" stop-color="#8d7cb8" stop-opacity=".26"/><stop offset="1" stop-color="#8d7cb8" stop-opacity="0"/></radialGradient>
+</defs>
+<g filter="url(#fog)">
+<path d="M-110 514C86 279 225 625 396 390C553 173 661 490 778 266C861 102 1005 257 1160 32" fill="none" stroke="url(#p)" stroke-width="105" opacity=".7"/>
+<path d="M-130 307C98 462 130 106 354 251C566 389 553 88 775 216C906 305 947 143 1150 90" fill="none" stroke="url(#v)" stroke-width="117" opacity=".57"/>
+<path d="M-80 582C140 430 321 625 484 494C626 386 741 597 881 458C995 332 1057 540 1193 372" fill="none" stroke="#cfc4ec" stroke-width="72" opacity=".15"/>
+<ellipse cx="330" cy="332" rx="242" ry="100" fill="url(#v)" opacity=".55"/>
+<ellipse cx="771" cy="446" rx="249" ry="105" fill="url(#p)" opacity=".48"/>
+</g>
+</svg>

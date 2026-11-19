@@ -6,6 +6,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import themePaletteCss from "../styles/theme-palettes.css?url";
+import crazySmokeCss from "../styles/crazy-smoke.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/lib/cart";
@@ -60,6 +61,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800;900&display=swap" },
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: themePaletteCss },
+      { rel: "stylesheet", href: crazySmokeCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),

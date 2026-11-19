@@ -20,6 +20,11 @@ export type HomeDesign = {
   center_caption: string;
   left_caption: string;
   right_caption: string;
+  smoke_enabled: boolean;
+  smoke_intensity: number;
+  motion_preset: "off" | "subtle" | "cinematic";
+  show_side_art: boolean;
+  hero_art_scale: number;
   updated_at: string;
 };
 export type HomeFeatureCard = {
@@ -49,6 +54,11 @@ export const defaultHome: HomeDesign = {
   center_caption: "Vitrine Crazy",
   left_caption: "Seu estilo",
   right_caption: "Seu próximo favorito",
+  smoke_enabled: true,
+  smoke_intensity: 60,
+  motion_preset: "cinematic",
+  show_side_art: false,
+  hero_art_scale: 95,
   updated_at: "",
 };
 

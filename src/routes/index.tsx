@@ -4,6 +4,9 @@ import { ArrowRight, ArrowUpRight, Package, ShieldCheck, Sparkles, Truck, Zap } 
 import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
 import { defaultHome, homeDesignQuery, homeFeatureCardsQuery, validHomeLink } from "@/lib/home-design";
+import { settingsQuery } from "@/lib/queries";
+import { SmokeFX } from "@/components/site/SmokeFX";
+import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +29,8 @@ function ActionLink({ href, className, children }: { href: string; className: st
 function Home() {
   const { data: stored } = useQuery(homeDesignQuery);
   const home = stored ?? defaultHome;
+  const {data:siteSettings} = useQuery(settingsQuery);
+  const isSmoke = siteSettings?.theme === "smoke";
   const { data: slots = [] } = useQuery(homeFeatureCardsQuery);
   const { data: products = [], isPending: productsPending } = useQuery(productsQuery);
   const { data: categories = [] } = useQuery(categoriesQuery);
@@ -36,7 +41,7 @@ function Home() {
     <div className="crazy-premium-home">
       <section className="crazy-premium-hero" aria-label="Boas-vindas à Crazy Pods">
         <img
-          src={home.background_url || "/crazy-premium-scene.svg"}
+          src={home.background_url || (isSmoke ? "/crazy-smoke-wisp.svg" : "/crazy-premium-scene.svg")}
           className={`crazy-hero-backdrop ${home.background_url ? "" : "crazy-demo-scene"}`}
           alt=""
           aria-hidden="true"
@@ -45,6 +50,7 @@ function Home() {
           fetchPriority="high"
         />
         <div className="crazy-hero-vignette" aria-hidden="true" />
+        {isSmoke && <SmokeFX enabled={home.smoke_enabled} intensity={home.smoke_intensity} motion={home.motion_preset} />}
         <div className="crazy-hero-grid">
           <div className="crazy-hero-copy animate-rise">
             <p className="crazy-hero-eyebrow"><Sparkles size={14} aria-hidden="true" /> {home.eyebrow}</p>
@@ -60,29 +66,33 @@ function Home() {
             </div>
           </div>
 
-          <div className="crazy-showcase" aria-label="Vitrine visual editável da Crazy Pods">
+          <div className={`crazy-showcase ${isSmoke ? "crazy-smoke-showcase" : ""}`} style={{"--hero-art-scale": home.hero_art_scale / 100} as CSSProperties} aria-label="Vitrine visual editável da Crazy Pods">
+            {isSmoke && <div className="crazy-smoke-bag-scene" aria-hidden="true">
+              <img src="/crazy-smoke-bag.svg" alt="" width={960} height={950} decoding="async" />
+              <span className="crazy-smoke-halo" />
+            </div>}
             <div className="crazy-stage-glow" aria-hidden="true" />
             <div className="crazy-glass-orbit" aria-hidden="true" />
             <div className="crazy-showcase-main">
               {home.center_image_url ? (
                 <img src={home.center_image_url} alt={home.center_caption || "Imagem em destaque"} className="crazy-showcase-cutout crazy-main-cutout" decoding="async" />
               ) : (
-                <img src="/showcase-earbuds.svg" alt="Ilustração demonstrativa de fones sem fio" className="crazy-showcase-cutout crazy-demo-illustration crazy-main-cutout" decoding="async" />
+                <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration crazy-main-cutout" decoding="async" />
               )}
               <span className="crazy-showcase-main-label">{home.center_caption}</span>
             </div>
-            <div className="crazy-float-card crazy-float-left">
+            {(!isSmoke || home.show_side_art || !!home.left_image_url) && <div className="crazy-float-card crazy-float-left">
               <div className="crazy-float-visual">
-                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-headphones.svg" alt="Ilustração demonstrativa de headphone" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
+                {home.left_image_url ? <img src={home.left_image_url} alt={home.left_caption || "Arte à esquerda"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
               </div>
               <span>{home.left_caption}</span>
-            </div>
-            <div className="crazy-float-card crazy-float-right">
+            </div>}
+            {(!isSmoke || home.show_side_art || !!home.right_image_url) && <div className="crazy-float-card crazy-float-right">
               <div className="crazy-float-visual">
-                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/showcase-watch.svg" alt="Ilustração demonstrativa de relógio inteligente" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
+                {home.right_image_url ? <img src={home.right_image_url} alt={home.right_caption || "Arte à direita"} className="crazy-showcase-cutout" loading="lazy" decoding="async" /> : <img src="/crazy-writing-pen.svg" alt="Ilustração demonstrativa de caneta de escrever" className="crazy-showcase-cutout crazy-demo-illustration" decoding="async" loading="lazy" />}
               </div>
               <span>{home.right_caption}</span>
-            </div>
+            </div>}
           </div>
         </div>
         <div className="crazy-hero-bottom-glow" aria-hidden="true" />

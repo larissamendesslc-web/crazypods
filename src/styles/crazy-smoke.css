@@ -1,0 +1,388 @@
+/*
+ * CRAZY SMOKE · BLACK EDITION
+ * Scenic depth using a vector shopping bag and GPU-composited transparent
+ * smoke. No WebGL, canvas loop, external image loader or animations on commerce forms.
+ */
+:root[data-theme="smoke"] {
+  color-scheme: dark;
+  --background: #08070c;
+  --foreground: #fbf5ff;
+  --surface: #12101a;
+  --card: #18121e;
+  --card-foreground: #faf4ff;
+  --popover: #201625;
+  --popover-foreground: #faf4ff;
+  --primary: #ff811f;
+  --primary-foreground: #221009;
+  --secondary: #251b2c;
+  --secondary-foreground: #faf4ff;
+  --muted: #251b29;
+  --muted-foreground: #bdb1c8;
+  --accent: #b774fb;
+  --accent-foreground: #180b25;
+  --border: rgba(233, 176, 255, .18);
+  --input: rgba(224, 184, 243, .26);
+  --ring: #ff811f;
+  --glow-primary: 0 10px 40px -15px rgba(255, 116, 21, .6);
+  --glow-accent: 0 10px 42px -15px rgba(174, 98, 255, .56);
+  --gradient-brand: linear-gradient(110deg, #ffb477, #ff781b 55%, #b76bff);
+  --cp-bg: #08070c;
+  --cp-bg-alt: #140c1b;
+  --cp-bg-hero: #08070c;
+  --cp-ink: #faf5ff;
+  --cp-muted: #c9bdcf;
+  --cp-quiet: #aea0bb;
+  --cp-key: #ff811f;
+  --cp-key-light: #ffc17d;
+  --cp-key-dark: #ea4f0c;
+  --cp-key-ink: #241007;
+  --cp-accent: #b778fc;
+  --cp-accent-rgb: 183, 120, 252;
+  --cp-key-rgb: 255, 129, 31;
+  --cp-panel: rgba(31, 20, 37, .92);
+  --cp-panel-strong: rgba(14, 10, 22, .95);
+  --cp-panel-soft: rgba(56, 33, 64, .62);
+  --cp-line: rgba(255, 168, 103, .34);
+  --cp-line-soft: rgba(255, 183, 137, .18);
+  --cp-nav-bg: rgba(7, 6, 12, .96);
+  --cp-nav-1: rgba(31, 17, 35, .93);
+  --cp-nav-2: rgba(11, 8, 19, .96);
+  --cp-ticker-ink: #27110a;
+  --cp-main-shadow: rgba(3, 3, 9, .6);
+  --cp-scene-filter: hue-rotate(-10deg) saturate(1.2);
+  --cp-art-filter: none;
+  --cp-scene-opacity: .4;
+  --cp-hero-mask-left: rgba(8, 6, 11, .96);
+  --cp-hero-mask-mid: rgba(10, 6, 13, .7);
+  --cp-hero-mask-end: rgba(11, 6, 14, .14);
+  --cp-highlight-surface: rgba(35, 15, 26, .75);
+}
+:root[data-theme="smoke"] .crazy-premium-home {
+  background:
+    radial-gradient(circle at 80% 4%, rgba(102, 37, 125, .12), transparent 29%),
+    linear-gradient(180deg, #08070c 0%, #120c18 38%, #08070c 100%);
+}
+:root[data-theme="smoke"] .crazy-premium-hero {
+  min-height: 770px;
+  background:
+    radial-gradient(ellipse at 77% 35%, rgba(255, 91, 9, .26), transparent 40%),
+    radial-gradient(ellipse at 78% 55%, rgba(147, 68, 204, .24), transparent 54%),
+    #08070c;
+  border-bottom: 1px solid rgba(255, 132, 39, .15);
+}
+:root[data-theme="smoke"] .crazy-hero-backdrop {
+  object-position: 70% center;
+  opacity: .27;
+  filter: hue-rotate(-15deg) saturate(1.3);
+}
+:root[data-theme="smoke"] .crazy-hero-backdrop:not(.crazy-demo-scene) {
+  object-position: 74% center;
+  opacity: .62;
+  filter: none;
+}
+:root[data-theme="smoke"] .crazy-hero-vignette {
+  background: linear-gradient(90deg, #08070cf8 0%, #08070ce8 22%, #08070c99 47%, rgba(8,5,12,.15) 82%),
+    linear-gradient(0deg, #08070c 0%, transparent 22%, transparent 76%, rgba(8,5,12,.27) 100%);
+}
+:root[data-theme="smoke"] .crazy-hero-grid {
+  min-height: 780px;
+  grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr);
+  padding-top: 73px;
+  padding-bottom: 93px;
+}
+:root[data-theme="smoke"] .crazy-hero-copy {
+  z-index: 5;
+  max-width: 645px;
+}
+:root[data-theme="smoke"] .crazy-hero-copy h1 {
+  font-size: clamp(2.8rem, 5.2vw, 5.7rem);
+  text-shadow: 0 8px 35px rgba(0, 0, 0, .34);
+  max-width: 610px;
+}
+:root[data-theme="smoke"] .crazy-hero-copy h1 span {
+  background: linear-gradient(120deg, #fff1e1 0%, #ffad65 30%, #ff7d1b 73%, #b667f8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+:root[data-theme="smoke"] .crazy-hero-description {
+  color: #d3c5d7;
+  max-width: 465px;
+  font-size: 15px;
+  line-height: 1.88;
+}
+:root[data-theme="smoke"] .crazy-hero-eyebrow {
+  border-color: rgba(255, 126, 34, .43);
+  background: rgba(27, 13, 21, .75);
+  color: #ffcc9a;
+}
+:root[data-theme="smoke"] .crazy-showcase {
+  min-height: 570px;
+  isolation: isolate;
+}
+.crazy-smoke-bag-scene {
+  position: absolute;
+  inset: -16% -8% -18% -19%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  perspective: 900px;
+}
+.crazy-smoke-bag-scene > img {
+  width: 100%;
+  height: 100%;
+  max-height: 840px;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 38px 42px rgba(0, 0, 0, .67))
+    drop-shadow(0 0 34px rgba(255, 92, 13, .16));
+  transform: translate3d(0,0,10px) rotateY(-7deg) rotateZ(-1deg);
+  animation: crazy-bag-breathe 11s ease-in-out infinite;
+}
+.crazy-smoke-halo {
+  position: absolute;
+  z-index: -1;
+  width: 73%;
+  height: 74%;
+  left: 18%;
+  top: 14%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 96, 19, .25) 4%, rgba(130, 59, 197, .15) 45%, transparent 70%);
+  filter: blur(25px);
+  animation: crazy-ambient-glow 9s ease-in-out infinite alternate;
+}
+:root[data-theme="smoke"] .crazy-stage-glow {
+  opacity: .9;
+  background: radial-gradient(ellipse, rgba(255, 96, 16, .2), rgba(181, 69, 248, .1) 52%, transparent 74%);
+}
+:root[data-theme="smoke"] .crazy-glass-orbit {
+  inset: 20% 4% 6%;
+  border-color: rgba(255, 110, 18, .24);
+  box-shadow: inset 0 0 60px rgba(255, 119, 15, .09), 0 0 38px rgba(255, 116, 34, .11);
+}
+:root[data-theme="smoke"] .crazy-showcase-main {
+  left: 68%;
+  top: 40%;
+  width: 28%;
+  height: 43%;
+  z-index: 4;
+  padding: 8px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 135, 50, .27);
+  background: linear-gradient(160deg, rgba(48, 25, 46, .48), rgba(11, 9, 19, .74));
+  box-shadow: 0 20px 55px rgba(0, 0, 0, .35), inset 0 0 34px rgba(255, 137, 36, .06);
+  transform: rotate(9deg);
+  animation: crazy-product-stage-float 8.4s ease-in-out infinite;
+}
+:root[data-theme="smoke"] .crazy-showcase-main .crazy-showcase-cutout {
+  height: 80%;
+  max-height: 80%;
+  transform: scale(var(--hero-art-scale, .95));
+  filter: drop-shadow(0 21px 20px rgba(0, 0, 0, .55)) drop-shadow(0 0 17px rgba(255, 111, 25, .21));
+  transition: transform .4s ease-out;
+}
+:root[data-theme="smoke"] .crazy-showcase-main .crazy-showcase-main-label {
+  margin-top: 4px;
+  font-size: 9px;
+  color: #ffdab3;
+}
+:root[data-theme="smoke"] .crazy-showcase-main:focus-within {
+  outline: 2px solid var(--cp-key);
+}
+:root[data-theme="smoke"] .crazy-float-card {
+  z-index: 5;
+  width: 27%;
+  height: 30%;
+  background: rgba(26, 17, 32, .8);
+  border-color: rgba(255, 150, 64, .42);
+}
+:root[data-theme="smoke"] .crazy-float-left { top: 11%; left: -3%; }
+:root[data-theme="smoke"] .crazy-float-right { right: 1%; top: 4%; }
+:root[data-theme="smoke"] .crazy-promise-strip {
+  margin-top: -35px;
+  border-radius: 23px;
+  border-color: rgba(255, 146, 70, .28);
+  background: linear-gradient(120deg, rgba(34, 20, 39, .98), rgba(15, 11, 22, .98));
+}
+:root[data-theme="smoke"] .crazy-editorial-card {
+  background: radial-gradient(ellipse at 53% 12%, rgba(95, 39, 91, .34), transparent 65%),
+    linear-gradient(160deg, rgba(33, 21, 44, .95), rgba(11, 10, 19, .98));
+  border-color: rgba(255, 150, 94, .2);
+}
+:root[data-theme="smoke"] .crazy-card-ambient {
+  background: radial-gradient(ellipse at 50% 25%, rgba(246, 96, 22, .21), transparent 65%);
+}
+:root[data-theme="smoke"] .crazy-products-section { padding-top: 70px; }
+:root[data-theme="smoke"] .store-product {
+  border-color: rgba(255, 165, 98, .17);
+  background: linear-gradient(160deg, rgba(35, 22, 42, .91), rgba(12, 10, 18, .96));
+  box-shadow: 0 12px 30px rgba(0,0,0,.15);
+}
+:root[data-theme="smoke"] .store-product:hover {
+  border-color: rgba(255, 156, 70, .65);
+  box-shadow: 0 19px 44px rgba(0,0,0,.33),0 0 22px rgba(255, 113, 30, .09);
+}
+:root[data-theme="smoke"] .crazy-last-call {
+  background: radial-gradient(ellipse at 87% 65%, rgba(251, 85, 10, .19), transparent 55%),
+    linear-gradient(110deg, #271425, #100a18);
+}
+:root[data-theme="smoke"] .crazy-site-nav-bg {
+  background: rgba(7, 6, 11, .96);
+}
+:root[data-theme="smoke"] .crazy-site-nav-shell {
+  background: linear-gradient(115deg,rgba(28, 17, 33, .96),rgba(9, 7, 16, .95) 65%,rgba(30, 16, 31, .94));
+  border-color: rgba(239, 151, 83, .3);
+}
+:root[data-theme="smoke"] .crazy-top-ticker {
+  background: linear-gradient(90deg,#d45513,#ff8e2f 44%,#f47a13 75%,#ab4415);
+  color:#21100d;
+}
+:root[data-theme="smoke"] .crazy-site-footer { border-color: rgba(255, 135, 54, .17); }
+:root[data-theme="smoke"] .crazy-cta-primary:focus-visible,
+:root[data-theme="smoke"] .crazy-cta-secondary:focus-visible,
+:root[data-theme="smoke"] .crazy-editorial-card:focus-visible {
+  outline: 3px solid #ffb270;
+  outline-offset: 3px;
+}
+
+/* Animated smoke: three independent slow layers, transforms only, no paint loop. */
+.crazy-smoke-fx {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: var(--smoke-opacity, .6);
+  contain: paint;
+}
+.crazy-smoke-stream {
+  position: absolute;
+  display: block;
+  width: 120%;
+  height: 120%;
+  background: url("/crazy-smoke-wisp.svg") center/contain no-repeat;
+  mix-blend-mode: screen;
+  will-change: transform;
+  transform: translate3d(0,0,0);
+}
+.crazy-smoke-stream-one {
+  left: -43%; top: 6%;
+  opacity: .59;
+  filter: hue-rotate(-30deg);
+  animation: crazy-smoke-drift-a 27s ease-in-out infinite alternate;
+}
+.crazy-smoke-stream-two {
+  left: 17%; top: 29%;
+  opacity: .47;
+  filter: hue-rotate(26deg);
+  animation: crazy-smoke-drift-b 35s ease-in-out infinite alternate;
+}
+.crazy-smoke-stream-three {
+  left: 29%; top: -32%;
+  opacity: .23;
+  filter: hue-rotate(65deg);
+  animation: crazy-smoke-drift-c 39s ease-in-out infinite alternate;
+}
+.crazy-smoke-ember {
+  position: absolute;
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffb46f;
+  box-shadow: 0 0 17px 7px rgba(252, 98, 20, .29),0 0 52px 19px rgba(132, 43, 176, .09);
+  animation: crazy-ember-breathe 9s ease-in-out infinite alternate;
+}
+.crazy-smoke-ember-one { left: 61%; top: 22%; }
+.crazy-smoke-ember-two { right: 12%; bottom: 28%; animation-delay: -4s; transform: scale(.55); }
+.crazy-smoke-fx[data-motion="subtle"] .crazy-smoke-stream {
+  animation-duration: 65s;
+  opacity: .36;
+}
+.crazy-smoke-fx[data-motion="off"] .crazy-smoke-stream,
+.crazy-smoke-fx[data-motion="off"] .crazy-smoke-ember,
+.crazy-smoke-fx[data-visible="no"] .crazy-smoke-stream,
+.crazy-smoke-fx[data-visible="no"] .crazy-smoke-ember {
+  animation-play-state: paused;
+}
+.crazy-smoke-fx[data-motion="off"] .crazy-smoke-ember { display:none; }
+@keyframes crazy-smoke-drift-a {
+  from { transform: translate3d(-7%, 2%, 0) rotate(-3deg) scale(1); }
+  to { transform: translate3d(15%, -8%, 0) rotate(5deg) scale(1.17); }
+}
+@keyframes crazy-smoke-drift-b {
+  from { transform: translate3d(9%, 6%, 0) rotate(7deg) scale(1.16); }
+  to { transform: translate3d(-13%, -6%, 0) rotate(-5deg) scale(.98); }
+}
+@keyframes crazy-smoke-drift-c {
+  from { transform: translate3d(-12%, -5%, 0) scale(1.04); }
+  to { transform: translate3d(11%, 9%, 0) scale(1.2); }
+}
+@keyframes crazy-bag-breathe {
+  from, to { transform: translate3d(0, 0, 10px) rotateY(-7deg) rotateZ(-1deg); }
+  50% { transform: translate3d(0, -10px, 10px) rotateY(-4deg) rotateZ(-.6deg); }
+}
+@keyframes crazy-product-stage-float {
+  from, to { transform: rotate(9deg) translateY(0); }
+  50% { transform: rotate(6deg) translateY(-11px); }
+}
+@keyframes crazy-ambient-glow { from { opacity:.65;transform:scale(.96); } to { opacity:1;transform:scale(1.1); } }
+@keyframes crazy-ember-breathe { from { opacity:.25; transform:translateY(6px) scale(.55); } to { opacity:.9; transform:translateY(-16px) scale(1.03); } }
+
+/* Owner-editable visuals: all images use contain and retain their color.
+   A product upload creates a dimensional stage, never a fake 3D mesh. */
+.crazy-showcase-cutout { object-fit:contain; object-position:center; }
+.crazy-editor-cutout-preview { background: radial-gradient(ellipse at center,rgba(255,120,24,.24),rgba(17,11,24,.9) 74%); }
+.crazy-smoke-controls { border:1px solid rgba(255,158,81,.2);border-radius:22px;padding:20px;background:linear-gradient(140deg,rgba(45,26,46,.44),rgba(12,9,20,.74)); }
+.crazy-smoke-controls input[type="range"] {width:100%;accent-color:#ff811f;cursor:pointer;}
+.crazy-smoke-controls input[type="range"]:focus-visible {outline:2px solid #ffb470;outline-offset:4px;}
+.crazy-smoke-controls .smoke-value {font-variant-numeric:tabular-nums;color:#ffb271;font-weight:800;}
+
+@media (max-width: 1024px) {
+  :root[data-theme="smoke"] .crazy-premium-hero { min-height: 650px; }
+  :root[data-theme="smoke"] .crazy-hero-grid { min-height: 650px; }
+  :root[data-theme="smoke"] .crazy-showcase { min-height: 440px; }
+  .crazy-smoke-bag-scene { inset:-13% -13% -10% -28%; }
+}
+@media (max-width: 720px) {
+  :root[data-theme="smoke"] .crazy-premium-hero { min-height:0; }
+  :root[data-theme="smoke"] .crazy-hero-grid {
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    padding: 43px 21px 68px;
+  }
+  :root[data-theme="smoke"] .crazy-hero-copy h1 {
+    font-size:clamp(2.48rem,10.3vw,4.2rem);
+  }
+  :root[data-theme="smoke"] .crazy-hero-description { font-size:13px;line-height:1.77; }
+  :root[data-theme="smoke"] .crazy-hero-vignette {
+    background:linear-gradient(180deg,rgba(8,7,13,.98),rgba(8,7,13,.83) 36%,rgba(11,7,14,.2) 72%,#08070c 100%);
+  }
+  :root[data-theme="smoke"] .crazy-showcase { height:365px; min-height:365px; margin-top:12px; }
+  .crazy-smoke-bag-scene { inset:-12% -14% -6% -16%; }
+  .crazy-smoke-bag-scene > img { transform:translate3d(0,0,5px) rotateY(-4deg); }
+  :root[data-theme="smoke"] .crazy-showcase-main {
+    left:68%;top:43%;width:26%;height:43%;padding:4px;border-radius:17px;
+  }
+  :root[data-theme="smoke"] .crazy-showcase-main .crazy-showcase-main-label { font-size:7px;letter-spacing:0; }
+  :root[data-theme="smoke"] .crazy-float-card { width:31%; height:31%; border-radius:16px; }
+  :root[data-theme="smoke"] .crazy-float-left { top:11%;left:-2%; }
+  :root[data-theme="smoke"] .crazy-float-right { top:9%;right:-1%; }
+  .crazy-smoke-stream { width:150%;height:100%; }
+  .crazy-smoke-stream-three { display:none; }
+  .crazy-smoke-ember-two { display:none; }
+  :root[data-theme="smoke"] .crazy-promise-strip { margin-top:-30px; }
+  :root[data-theme="smoke"] .crazy-products-section { padding-top:50px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crazy-smoke-stream,
+  .crazy-smoke-ember,
+  .crazy-smoke-bag-scene > img,
+  .crazy-smoke-halo,
+  :root[data-theme="smoke"] .crazy-showcase-main {
+    animation:none !important;
+  }
+  .crazy-smoke-ember { display:none; }
+}

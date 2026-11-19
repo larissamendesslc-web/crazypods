@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 950" role="img" aria-label="Sacola preta Crazy Pods iluminada em laranja">
+<defs>
+<linearGradient id="front" x1="0" y1="0" x2=".93" y2=".9"><stop stop-color="#38323e"/><stop offset=".2" stop-color="#1c1922"/><stop offset=".57" stop-color="#08090d"/><stop offset=".88" stop-color="#111016"/><stop offset="1" stop-color="#2b1921"/></linearGradient>
+<linearGradient id="side" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f97621"/><stop offset=".14" stop-color="#5d2218"/><stop offset=".53" stop-color="#141019"/><stop offset=".83" stop-color="#33171b"/><stop offset="1" stop-color="#f0690d"/></linearGradient>
+<linearGradient id="rim" x1=".1" y1=".3" x2=".9" y2="1"><stop stop-color="#ffb473"/><stop offset=".34" stop-color="#9c3c18"/><stop offset=".6" stop-color="#24131a"/><stop offset="1" stop-color="#e67525"/></linearGradient>
+<linearGradient id="handle"><stop stop-color="#ffb27b"/><stop offset=".3" stop-color="#713d31"/><stop offset=".56" stop-color="#140f19"/><stop offset=".85" stop-color="#8e3a1b"/><stop offset="1" stop-color="#faaa69"/></linearGradient>
+<linearGradient id="letter" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".38" stop-color="#ccc5d2"/><stop offset=".72" stop-color="#ffffff"/><stop offset="1" stop-color="#78717e"/></linearGradient>
+<linearGradient id="orangeText"><stop stop-color="#ffb36d"/><stop offset=".32" stop-color="#ff8527"/><stop offset=".8" stop-color="#ff5f08"/><stop offset="1" stop-color="#ffb362"/></linearGradient>
+<radialGradient id="hot"><stop stop-color="#fe7a22" stop-opacity=".65"/><stop offset="1" stop-color="#fe7a22" stop-opacity="0"/></radialGradient>
+<pattern id="grain" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 4L1 3M6 7L7 6" stroke="#f5b993" stroke-opacity=".08" stroke-width=".5"/></pattern>
+<filter id="shadow" x="-70%" y="-80%" width="240%" height="270%"><feGaussianBlur stdDeviation="28"/></filter>
+<filter id="soft" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="10"/></filter>
+<filter id="neon" x="-90%" y="-120%" width="280%" height="340%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<ellipse cx="507" cy="802" rx="305" ry="48" fill="#000" opacity=".78" filter="url(#shadow)"/>
+<ellipse cx="529" cy="719" rx="364" ry="226" fill="url(#hot)" opacity=".5" filter="url(#soft)"/>
+<path d="M232 337L320 294L744 317L672 343Z" fill="#2e2330" stroke="#8d4a2f" stroke-width="2"/>
+<path d="M672 343L744 317L816 770L732 792Z" fill="url(#side)" stroke="#b8522c" stroke-width="4"/>
+<path d="M232 337L672 343L732 792L182 797Z" fill="url(#front)" stroke="url(#rim)" stroke-width="4"/>
+<path d="M232 337L672 343L732 792L182 797Z" fill="url(#grain)" opacity=".6"/>
+<path d="M232 337L672 343" fill="none" stroke="#f4b48f" stroke-width="3" opacity=".52"/>
+<path d="M232 337L182 797" fill="none" stroke="#ff7f2b" stroke-width="5" opacity=".7" filter="url(#neon)"/>
+<path d="M672 343L732 792" fill="none" stroke="#eb7e37" stroke-width="5" opacity=".55" filter="url(#soft)"/>
+<path d="M270 360Q252 461 246 680" fill="none" stroke="#fff" stroke-width="7" opacity=".055"/>
+<path d="M591 369Q655 562 681 764" fill="none" stroke="#ff9a63" stroke-width="6" opacity=".11"/>
+<!-- twisted cord handles with physical metal collars -->
+<path d="M327 354C313 218 356 121 451 118C534 116 581 227 573 355" fill="none" stroke="#0b0a12" stroke-width="32" stroke-linecap="round"/>
+<path d="M327 354C313 218 356 121 451 118C534 116 581 227 573 355" fill="none" stroke="url(#handle)" stroke-width="12" stroke-linecap="round"/>
+<path d="M448 354C439 197 485 99 583 103C665 105 708 222 704 333" fill="none" stroke="#0b0a12" stroke-width="32" stroke-linecap="round"/>
+<path d="M448 354C439 197 485 99 583 103C665 105 708 222 704 333" fill="none" stroke="url(#handle)" stroke-width="12" stroke-linecap="round"/>
+<ellipse cx="331" cy="351" rx="18" ry="11" fill="#100c14" stroke="#9c592c" stroke-width="3"/>
+<ellipse cx="448" cy="351" rx="18" ry="11" fill="#100c14" stroke="#9c592c" stroke-width="3"/>
+<ellipse cx="574" cy="352" rx="18" ry="11" fill="#100c14" stroke="#9c592c" stroke-width="3"/>
+<ellipse cx="703" cy="335" rx="18" ry="11" fill="#100c14" stroke="#9c592c" stroke-width="3"/>
+<!-- understated crown, chrome CRAZY / neon Pods -->
+<g transform="rotate(-1 466 527)">
+<path d="M427 471L447 490L465 455L482 490L509 465L504 500L429 501Z" fill="none" stroke="#ff8735" stroke-width="5" stroke-linejoin="round" filter="url(#neon)"/>
+<circle cx="425" cy="468" r="5" fill="#ffbc73"/><circle cx="465" cy="452" r="5" fill="#ffbc73"/><circle cx="510" cy="462" r="5" fill="#ffbc73"/>
+<text x="448" y="561" font-family="Arial Black,Impact,Arial,sans-serif" font-size="69" font-weight="900" letter-spacing="-4" fill="url(#letter)" text-anchor="middle">CRAZY</text>
+<text x="491" y="629" font-family="Georgia,serif" font-style="italic" font-size="83" font-weight="700" letter-spacing="-7" fill="url(#orangeText)" filter="url(#neon)" text-anchor="middle">Pods</text>
+<path d="M375 644Q485 671 601 638" fill="none" stroke="#f97418" stroke-width="6" stroke-linecap="round" filter="url(#neon)"/>
+</g>
+<path d="M287 739Q460 763 674 744" fill="none" stroke="#ef9253" stroke-width="2" opacity=".22"/>
+<path d="M739 350Q767 510 796 738" fill="none" stroke="#ffa462" stroke-width="3" opacity=".42"/>
+</svg>
