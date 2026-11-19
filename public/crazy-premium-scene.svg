@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 960" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Palco abstrato com sacola preta, luzes laranja e violeta">
+<defs>
+<radialGradient id="bg"><stop stop-color="#302044"/><stop offset=".52" stop-color="#130d22"/><stop offset="1" stop-color="#07060d"/></radialGradient>
+<radialGradient id="purple"><stop stop-color="#9d3dff" stop-opacity=".5"/><stop offset="1" stop-color="#9d3dff" stop-opacity="0"/></radialGradient>
+<radialGradient id="orange"><stop stop-color="#ff7a18" stop-opacity=".67"/><stop offset="1" stop-color="#ff7a18" stop-opacity="0"/></radialGradient>
+<linearGradient id="bag" x1=".1" y1="0" x2="1" y2="1"><stop stop-color="#403044"/><stop offset=".26" stop-color="#201826"/><stop offset=".6" stop-color="#0d0b13"/><stop offset="1" stop-color="#08060d"/></linearGradient>
+<linearGradient id="bagSide"><stop stop-color="#ff7d18"/><stop offset=".24" stop-color="#5c2416"/><stop offset=".72" stop-color="#110c17"/><stop offset="1" stop-color="#020105"/></linearGradient>
+<linearGradient id="stone" x1=".3" y1=".1" x2=".65" y2="1"><stop stop-color="#554055"/><stop offset=".17" stop-color="#211827"/><stop offset=".62" stop-color="#0c0912"/><stop offset="1" stop-color="#030306"/></linearGradient>
+<linearGradient id="orangeLine"><stop stop-color="#ff5c03" stop-opacity="0"/><stop offset=".2" stop-color="#ffbe74"/><stop offset=".5" stop-color="#ff6505"/><stop offset=".8" stop-color="#ffc27a"/><stop offset="1" stop-color="#ff5c03" stop-opacity="0"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="14"/></filter><filter id="soft"><feGaussianBlur stdDeviation="38"/></filter><filter id="blur"><feGaussianBlur stdDeviation="78"/></filter>
+<filter id="orb"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<rect width="1680" height="960" fill="url(#bg)"/>
+<ellipse cx="1120" cy="365" rx="580" ry="390" fill="url(#purple)" filter="url(#blur)"/>
+<ellipse cx="1135" cy="680" rx="460" ry="290" fill="url(#orange)" filter="url(#soft)"/>
+<ellipse cx="1450" cy="100" rx="255" ry="180" fill="url(#orange)" filter="url(#blur)" opacity=".5"/>
+<path d="M-60 920L460 480L595 688L280 1010Z" fill="#100919" opacity=".7"/>
+<path d="M1300 0L1690 0L1690 360L1550 255Z" fill="#1d0c19" opacity=".7"/>
+<path d="M550 860L738 696L1005 708L1124 799L1690 866L1680 960L410 960Z" fill="#120a16"/>
+<path d="M572 872L748 752L930 786L1104 729L1262 764L1510 700L1720 880L1555 940L845 928Z" fill="url(#stone)" stroke="#553449" stroke-width="2"/>
+<path d="M720 855L865 830L914 843L1050 807L1180 821" fill="none" stroke="#f6670d" opacity=".7" stroke-width="4" filter="url(#orb)"/>
+<path d="M1090 880L1190 856L1350 888L1500 866" fill="none" stroke="#f6670d" opacity=".65" stroke-width="4" filter="url(#orb)"/>
+<ellipse cx="1120" cy="841" rx="340" ry="38" fill="#ff5d05" opacity=".24" filter="url(#glow)"/>
+<!-- matte luxury shopping bag stage -->
+<path d="M1016 363L1262 350L1371 749L941 770Z" fill="url(#bagSide)"/>
+<path d="M898 395L1250 377L1330 760L823 775Z" fill="url(#bag)" stroke="#65313d" stroke-width="3"/>
+<path d="M898 395L1003 366L1262 350L1250 377Z" fill="#372331" stroke="#ad591c" stroke-width="2"/>
+<path d="M1250 377L1262 350L1371 749L1330 760Z" fill="url(#bagSide)" stroke="#ab4d1a" stroke-opacity=".65" stroke-width="3"/>
+<path d="M967 404C962 285 1000 234 1051 235C1119 236 1121 310 1130 391" fill="none" stroke="#2c1620" stroke-width="22"/>
+<path d="M967 404C962 285 1000 234 1051 235C1119 236 1121 310 1130 391" fill="none" stroke="#ff8a30" stroke-width="7" opacity=".95"/>
+<path d="M1076 399C1074 282 1117 221 1175 230C1245 239 1249 311 1247 374" fill="none" stroke="#241622" stroke-width="22"/>
+<path d="M1076 399C1074 282 1117 221 1175 230C1245 239 1249 311 1247 374" fill="none" stroke="#ff8a30" stroke-width="7" opacity=".9"/>
+<path d="M861 701C1010 704 1175 650 1351 558" fill="none" stroke="#ff9c45" stroke-width="2" opacity=".3"/>
+<!-- orbit drawing as 2 crossing sweeps -->
+<path d="M646 681C740 828 1252 831 1530 632C1680 524 1549 439 1350 435" stroke="#ff7417" stroke-width="13" opacity=".45" fill="none" filter="url(#glow)"/>
+<path d="M646 681C740 828 1252 831 1530 632C1680 524 1549 439 1350 435" stroke="url(#orangeLine)" stroke-width="5" fill="none"/>
+<path d="M816 420C965 264 1390 230 1586 396" stroke="#ff6d09" stroke-width="8" opacity=".55" fill="none" filter="url(#glow)"/>
+<path d="M816 420C965 264 1390 230 1586 396" stroke="url(#orangeLine)" stroke-width="3" fill="none"/>
+<circle cx="1440" cy="395" r="5" fill="#ffc27d" filter="url(#orb)"/>
+<circle cx="790" cy="712" r="6" fill="#ff791c" filter="url(#orb)"/>
+<circle cx="1175" cy="214" r="4" fill="#ffbd78"/>
+<circle cx="1495" cy="204" r="2" fill="#a987ff"/>
+<circle cx="766" cy="259" r="2.5" fill="#ca7bff"/>
+<path d="M115 830C340 712 540 761 675 800" fill="none" stroke="#8334b0" stroke-width="4" opacity=".2" filter="url(#soft)"/>
+</svg>

@@ -35,6 +35,7 @@ export function ThemeDecor({ theme }: { theme: string }) {
 }
 
 export const THEMES = [
+  { id: "premium", name: "Crazy Pods Premium", desc: "Laranja neon, roxo e preto · tema novo", colors: ["#0b0811", "#ff8017", "#b568fd"] },
   { id: "padrao", name: "Crazy Neon", desc: "Identidade original", colors: ["#07070a", "#c6ff3d", "#ff3df0"] },
   { id: "natal", name: "Natal", desc: "Branco, vermelho, verde e neve", colors: ["#ffffff", "#bb1730", "#164d38"] },
   { id: "ano-novo", name: "Ano Novo", desc: "Dourado e brilho", colors: ["#0b1024", "#f2c94c", "#e8edf7"] },

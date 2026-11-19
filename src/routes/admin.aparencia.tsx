@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminHead } from "@/lib/admin-head";
+import { HomeVisualEditor } from "@/components/admin/HomeVisualEditor";
 
 export const Route = createFileRoute("/admin/aparencia")({ head: () => adminHead("Aparência", "Temas sazonais e informações da loja Crazy."), component: Appearance });
 
@@ -51,6 +52,7 @@ function Appearance() {
         <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Chave Pix (aparece após o pedido)</Label><Input value={f.pix_key} maxLength={140} onChange={(e) => setF({ ...f, pix_key: e.target.value })} /></div>
         <Button variant="neon" onClick={() => save(f)}>Salvar informações</Button>
       </div>
+      <HomeVisualEditor />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -8,15 +8,16 @@ import { Input } from "@/components/ui/input";
 import christmasScene from "@/assets/christmas-scene.jpg";
 
 export const Route = createFileRoute("/loja")({
-  validateSearch: (s: Record<string, unknown>): { marca?: string | undefined } => ({
+  validateSearch: (s: Record<string, unknown>): { marca?: string | undefined; q?: string | undefined } => ({
     marca: typeof s["marca"] === "string" ? s["marca"] : undefined,
+    q: typeof s["q"] === "string" ? s["q"].slice(0, 100) : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Loja — Crazy" },
       { name: "description", content: "Confira todos os produtos da loja. Filtre por categoria e escolha sua opção." },
       { property: "og:title", content: "Loja Crazy" },
-      { property: "og:description", content: "Filtre por marca e encontre seu próximo sabor favorito." },
+      { property: "og:description", content: "Filtre por categoria e descubra novidades da Crazy Pods." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -25,8 +26,9 @@ export const Route = createFileRoute("/loja")({
 });
 
 function Shop() {
-  const { marca } = Route.useSearch();
-  const [q, setQ] = useState("");
+  const { marca, q: search } = Route.useSearch();
+  const [q, setQ] = useState(search ?? "");
+  useEffect(() => { setQ(search ?? ""); }, [search]);
   const { data: products = [], isLoading } = useQuery(productsQuery);
   const { data: cats = [] } = useQuery(categoriesQuery);
   const current = cats.find((c) => c.slug === marca);
@@ -53,7 +55,7 @@ function Shop() {
       <div className="sticky top-[7.5rem] z-30 -mx-4 mt-6 space-y-3 bg-background/85 px-4 py-3 backdrop-blur md:top-[6.5rem]">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar produto ou sabor..." className="h-12 rounded-full pl-11" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar produtos..." className="h-12 rounded-full pl-11" />
         </div>
         <div className="flex gap-2 overflow-x-auto scrollbar-none">
           <Chip active={!current} to={undefined}>Todas</Chip>
