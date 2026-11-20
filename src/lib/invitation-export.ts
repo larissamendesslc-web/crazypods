@@ -21,7 +21,7 @@ function wrapText(ctx:CanvasRenderingContext2D,text:string,maxW:number,maxLines=
   else line=next;
  }
  if(line)lines.push(line);
- if(lines.length>maxLines){lines.length=maxLines;let tail=lines[maxLines-1];while(ctx.measureText(tail+"…").width>maxW)tail=tail.slice(0,-1);lines[maxLines-1]=tail+"…";}
+ if(lines.length>maxLines){lines.length=maxLines;let tail=lines[maxLines-1] ?? "";while(ctx.measureText(tail+"…").width>maxW)tail=tail.slice(0,-1);lines[maxLines-1]=tail+"…";}
  return lines;
 }
 async function loadInviteImage(url:string):Promise<HTMLImageElement|null>{

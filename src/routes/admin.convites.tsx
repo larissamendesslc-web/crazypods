@@ -36,8 +36,9 @@ function InvitationsAdmin() {
   const live=Boolean(draft.id && !dirty);
   const shareable=live && draft.enabled && (!draft.expires_at || new Date(draft.expires_at).getTime()>Date.now());
   useEffect(()=>{
-    if(!selected && invitations.length){
-      setDraft({...invitations[0]});setDirty(false);setSelected(true);
+    const first=invitations[0];
+    if(!selected && first){
+      setDraft({...first});setDirty(false);setSelected(true);
     }
   },[selected,invitations]);
   function change<K extends keyof InvitationDraft>(key:K,value:InvitationDraft[K]){

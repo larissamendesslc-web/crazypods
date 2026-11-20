@@ -29,7 +29,9 @@ export function InvitationCardVisual({card,mode="preview"}:{
   );
   return (
     <div className={`invite-card invite-card-${card.theme} ${mode==="landing"?"invite-card-landing":"invite-card-preview"}`} data-invitation-card={card.theme}>
-      {mode==="landing" ? <Link to={card.destination} search={card.destination==="/loja"?{}:undefined} className="invite-card-inner" aria-label={`${card.cta_label} — Crazy Pods`}>{content}</Link>
+      {mode==="landing" ? (card.destination==="/loja" ?
+        <Link to="/loja" search={{}} className="invite-card-inner" aria-label={`${card.cta_label} — Crazy Pods`}>{content}</Link> :
+        <Link to="/" className="invite-card-inner" aria-label={`${card.cta_label} — Crazy Pods`}>{content}</Link>)
         : <div className="invite-card-inner" aria-label="Prévia do cartão de convite">{content}</div>}
     </div>
   );
