@@ -54,6 +54,7 @@ export async function downloadInvitationCreative(card:Card,shape:ExportShape){
  const padding=80;
  // Soft framed artwork is optional; text remains legible on opaque glass.
  const image=card.image_url?await loadInviteImage(card.image_url):null;
+ if(card.image_url&&!image)throw new Error("Não foi possível carregar a imagem enviada. Tente outra imagem.");
  if(image){
   const x=story?115:540,y=story?245:120,w=story?850:450,h=story?680:520;
   ctx.save();roundedRectangle(ctx,x,y,w,h,42);ctx.clip();coverImage(ctx,image,x,y,w,h);
@@ -70,28 +71,36 @@ export async function downloadInvitationCreative(card:Card,shape:ExportShape){
  ctx.fillText("CRAZY",padding,story?125:95);
  const brandWidth=ctx.measureText("CRAZY").width;
  ctx.fillStyle=c.a;ctx.fillText("PODS",padding+brandWidth+9,story?125:95);
- ctx.textAlign="center";
- const contentStart=story?1050:520;
- ctx.font='800 29px "Manrope", sans-serif';ctx.fillStyle=c.c;
- ctx.fillText(card.eyebrow.toUpperCase(),width/2,contentStart);
- ctx.font='900 66px "Unbounded", sans-serif';ctx.fillStyle="#ffffff";
- const title=wrapText(ctx,card.title,900,story?4:3);
- const lineHeight=87;let y=contentStart+95;
- for(const line of title){ctx.fillText(line,width/2,y);y+=lineHeight;}
- ctx.font='500 29px "Manrope", sans-serif';ctx.fillStyle="#d6ccdf";
- const subtitle=wrapText(ctx,card.subtitle,880,story?5:2);
- y+=15;for(const line of subtitle){ctx.fillText(line,width/2,y);y+=43;}
- y+=33;
- const btnWidth=690,btnHeight=96;
- const btnX=(width-btnWidth)/2;
+ const centerX=story?width/2:82;
+ const startY=story?1010:350;
+ const titleMaxWidth=story?880:470;
+ ctx.textAlign=story?"center":"left";
+ ctx.font=`800 ${story?29:24}px "Manrope", sans-serif`;
+ ctx.fillStyle=c.c;ctx.fillText(card.eyebrow.toUpperCase(),centerX,startY);
+ ctx.font=`900 ${story?64:50}px "Unbounded",sans-serif`;ctx.fillStyle="#ffffff";
+ const title=wrapText(ctx,card.title,titleMaxWidth,3);
+ let y=startY+(story?90:72);
+ for(const line of title){ctx.fillText(line,centerX,y);y+=story?80:66;}
+ ctx.font=`500 ${story?29:24}px "Manrope",sans-serif`;ctx.fillStyle="#d6ccdf";
+ const subtitle=wrapText(ctx,card.subtitle,titleMaxWidth,story?3:3);
+ y+=story?18:6;
+ for(const line of subtitle){ctx.fillText(line,centerX,y);y+=story?43:36;}
+ y+=story?45:27;
+ const btnWidth=story?690:475,btnHeight=story?96:78;
+ const btnX=story?(width-btnWidth)/2:75;
+ const maxButtonY=story?1645:850;
+ y=Math.min(y,maxButtonY);
  const btnGradient=ctx.createLinearGradient(btnX,0,btnX+btnWidth,0);
  btnGradient.addColorStop(0,c.a);btnGradient.addColorStop(1,c.b);
- ctx.fillStyle=btnGradient;roundedRectangle(ctx,btnX,y,btnWidth,btnHeight,35);ctx.fill();
- ctx.font='900 32px "Manrope",sans-serif';ctx.fillStyle="#ffffff";
- ctx.fillText(card.cta_label.toUpperCase(),width/2,y+62);
+ ctx.fillStyle=btnGradient;roundedRectangle(ctx,btnX,y,btnWidth,btnHeight,story?35:24);ctx.fill();
+ ctx.textAlign="center";
+ ctx.font=`900 ${story?32:27}px "Manrope",sans-serif`;ctx.fillStyle="#14081b";
+ ctx.fillText(card.cta_label.toUpperCase().slice(0,33),btnX+btnWidth/2,y+(story?61:51));
  const footer=story?height-120:height-65;
- ctx.fillStyle=c.c;ctx.font='800 22px "Manrope",sans-serif';ctx.fillText("LINK DISPONÍVEL NA MENSAGEM OU NO PERFIL",width/2,footer-40);
- ctx.fillStyle="#b6abc2";ctx.font='600 20px "Manrope",sans-serif';ctx.fillText(invitationUrl(card.slug),width/2,footer);
+ ctx.fillStyle=c.c;ctx.font=`800 ${story?22:19}px "Manrope",sans-serif`;
+ ctx.fillText("LINK DISPONÍVEL NA MENSAGEM OU NO PERFIL",width/2,footer-40);
+ ctx.fillStyle="#b6abc2";ctx.font=`600 ${story?20:18}px "Manrope",sans-serif`;
+ ctx.fillText(invitationUrl(card.slug),width/2,footer);
  const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Não foi possível gerar o PNG.")),"image/png"));
  const href=URL.createObjectURL(blob);
  const a=document.createElement("a");a.href=href;a.download=`crazy-${card.slug}-${shape}.png`;a.click();

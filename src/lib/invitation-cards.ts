@@ -10,7 +10,7 @@ export type InvitationCardData = {
 };
 
 export const INVITE_ORIGIN = "https://crazypods.vercel.app";
-export const INVITE_DEFAULT_IMAGE = INVITE_ORIGIN + "/crazy-invitation-cover.svg";
+export const INVITE_DEFAULT_IMAGE = INVITE_ORIGIN + "/crazy-invitation-cover.png";
 export const INVITE_THEMES: { id: InvitationTheme; label: string; description: string }[] = [
   { id: "neon", label: "Crazy RGB", description: "Rosa, roxo e azul vibrantes" },
   { id: "smoke", label: "Crazy Smoke", description: "Preto, laranja e fumaça" },
