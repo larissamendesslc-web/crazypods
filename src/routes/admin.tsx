@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { BarChart3, Boxes, LayoutDashboard, LogOut, Package, Palette, ReceiptText, Tags, Truck, Wallet, ShieldCheck } from "lucide-react";
+import { BarChart3, Boxes, LayoutDashboard, LogOut, Package, Palette, ReceiptText, Tags, Truck, Wallet, ShieldCheck, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -41,6 +41,7 @@ const NAV = [
   { to: "/admin/seguranca", label: "Segurança", icon: ShieldCheck },
   { to: "/admin/marcas", label: "Marcas", icon: Tags },
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
+  { to: "/admin/convites", label: "Convites", icon: Share2 },
 ] as const;
 
 function AdminLayout() {

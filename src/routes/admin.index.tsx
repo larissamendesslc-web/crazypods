@@ -23,6 +23,7 @@ function Overview() {
   return (
     <>
       <PageTitle title="Visão geral" sub={now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })} />
+      <Link to="/admin/convites" className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 text-sm font-semibold transition-colors hover:bg-primary/10">Crie convites digitais para Instagram e WhatsApp <span className="text-primary">Abrir divulgação ↗</span></Link>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Vendas hoje" value={formatBRL(today.reduce((s, o) => s + Number(o.total), 0))} tone="primary" />
         <Stat label="Pedidos pendentes" value={String(pending.length)} tone="accent" />

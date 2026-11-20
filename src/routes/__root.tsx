@@ -9,6 +9,7 @@ import themePaletteCss from "../styles/theme-palettes.css?url";
 import crazySmokeCss from "../styles/crazy-smoke.css?url";
 import seasonalExperienceCss from "../styles/seasonal-experience.css?url";
 import heritageMarketCss from "../styles/heritage-market.css?url";
+import invitationsCss from "../styles/invitation-cards.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/lib/cart";
@@ -67,6 +68,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: crazySmokeCss },
       { rel: "stylesheet", href: seasonalExperienceCss },
       { rel: "stylesheet", href: heritageMarketCss },
+      { rel: "stylesheet", href: invitationsCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),
