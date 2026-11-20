@@ -490,3 +490,89 @@
   .ffm-opening-progress span{animation:none!important;}
   .ffm-entry-link{transition:none!important;}
 }
+
+
+/* CRAZY NEON CLUB | photo-led shop cover, isolated to the regular storefront theme.
+   Photo sources: MART PRODUCTION (Pexels 7269232), Yaritza (Pexels 12676897).
+   Replace these temporary CDN references with the approved local hero asset when uploaded. */
+.crazy-shop-cover.crazy-shop-cover-padrao {
+  min-height:clamp(335px,33vw,430px);
+  border-color:rgba(181,92,210,.45);
+  background:radial-gradient(circle at 79% 20%,rgba(14,163,242,.18),transparent 42%),#0b0716;
+  box-shadow:0 18px 48px rgba(8,3,20,.3),inset 0 0 0 1px rgba(255,255,255,.025);
+}
+.crazy-shop-cover-padrao .crazy-club-scene {
+  position:absolute;
+  z-index:0;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  border-radius:inherit;
+  background:#12091a url("https://images.pexels.com/photos/7269232/pexels-photo-7269232.jpeg?auto=compress&cs=tinysrgb&w=1600") center 38% / cover no-repeat;
+}
+.crazy-shop-cover-padrao .crazy-club-scene::before {
+  content:"";
+  position:absolute;
+  inset:0 -3% 0 25%;
+  background:url("https://images.pexels.com/photos/12676897/pexels-photo-12676897.jpeg?auto=compress&cs=tinysrgb&w=1600") 72% 50% / cover no-repeat;
+  opacity:.94;
+  -webkit-mask-image:linear-gradient(to right,transparent 0%,#000 46%);
+  mask-image:linear-gradient(to right,transparent 0%,#000 46%);
+}
+.crazy-shop-cover-padrao .crazy-club-scene::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(90deg,rgba(9,5,17,.95) 0%,rgba(11,5,20,.84) 33%,rgba(11,5,20,.35) 67%,rgba(11,5,20,.08) 100%),
+    linear-gradient(0deg,rgba(7,4,16,.54),transparent 48%),
+    linear-gradient(132deg,rgba(233,27,154,.20),transparent 56%,rgba(9,149,227,.15));
+}
+.crazy-shop-cover-padrao .crazy-shop-cover-lights {
+  z-index:1;
+  background:radial-gradient(ellipse at 80% 29%,rgba(216,30,172,.17),transparent 58%);
+}
+.crazy-shop-cover-padrao .crazy-shop-cover-copy {
+  z-index:2;
+  width:66%;
+  max-width:640px;
+  text-shadow:0 2px 14px rgba(4,1,12,.6);
+}
+.crazy-shop-cover-padrao h2 {max-width:630px;}
+.crazy-shop-cover-padrao p {color:#eadfec;}
+.crazy-shop-cover-padrao .crazy-shop-cover-promises {color:#ff5cb7;}
+@media(max-width:680px) {
+  .crazy-shop-cover.crazy-shop-cover-padrao {
+    min-height:355px;
+    padding:28px 22px;
+    border-radius:24px;
+  }
+  .crazy-shop-cover-padrao .crazy-shop-cover-copy {
+    width:100%;
+    max-width:355px;
+  }
+  .crazy-shop-cover-padrao .crazy-club-scene {
+    background-position:48% center;
+  }
+  .crazy-shop-cover-padrao .crazy-club-scene::before {
+    inset:0 -24% 0 10%;
+    background-position:74% center;
+    opacity:.82;
+    -webkit-mask-image:linear-gradient(to right,transparent 3%,#000 63%);
+    mask-image:linear-gradient(to right,transparent 3%,#000 63%);
+  }
+  .crazy-shop-cover-padrao .crazy-club-scene::after {
+    background:
+      linear-gradient(90deg,rgba(9,5,18,.94),rgba(9,5,18,.81) 44%,rgba(9,5,18,.34)),
+      linear-gradient(0deg,rgba(7,4,16,.45),transparent 45%);
+  }
+  .crazy-shop-cover-padrao h2 {
+    max-width:325px;
+    font-size:clamp(1.5rem,6.1vw,2.15rem);
+  }
+  .crazy-shop-cover-padrao p {max-width:295px;}
+  .crazy-shop-cover-padrao .crazy-shop-cover-promises {max-width:325px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .crazy-shop-cover-padrao .crazy-club-scene {animation:none;}
+}
