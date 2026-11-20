@@ -22,6 +22,7 @@ export function ThemeShopCover({ theme }: { theme: string }) {
   const image = experience.art;
   return (
     <section className={`crazy-shop-cover crazy-shop-cover-${id}`} aria-label={experience.label}>
+      {id === "padrao" && <div className="crazy-club-scene" aria-hidden="true" />}
       <div className="crazy-shop-cover-lights" aria-hidden="true" />
       <div className="crazy-shop-cover-copy">
         <div className="crazy-shop-cover-eyebrow">
@@ -35,11 +36,13 @@ export function ThemeShopCover({ theme }: { theme: string }) {
           <span><Sparkles size={15} /> Vitrine Crazy</span>
         </div>
       </div>
-      <div className="crazy-shop-cover-art" aria-hidden="true">
-        {image ? <img src={image} alt="" loading="lazy" width={1000} height={950} /> : (
-          <div className="crazy-shop-orbit"><Sparkles size={64}/><span>CRAZY PODS</span></div>
-        )}
-      </div>
+      {id !== "padrao" && (
+        <div className="crazy-shop-cover-art" aria-hidden="true">
+          {image ? <img src={image} alt="" loading="lazy" width={1000} height={950} /> : (
+            <div className="crazy-shop-orbit"><Sparkles size={64}/><span>CRAZY PODS</span></div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
